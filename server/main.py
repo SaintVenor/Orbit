@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from pydantic import ValidationError
 
 from .db import connect, initialize
+from .plans import router as plans_router
 from .entries import CreateEntry, EntryFields, calendar_date, invalid, normalize
 
 
@@ -16,6 +17,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Орбита", lifespan=lifespan)
+app.include_router(plans_router)
 
 
 @app.get("/api/health")
@@ -51,6 +53,7 @@ def calendar(start_raw: str = Query(alias="from"), end_raw: str = Query(alias="t
         invalid("to", "Окончание раньше начала.", "query")
 
     with connect() as db:
+        db.execute("BEGIN")
         entries = db.execute(
             """SELECT * FROM entries WHERE kind != 'birthday'
                AND startDate <= ? AND endDate >= ?""", (end_raw, start_raw),

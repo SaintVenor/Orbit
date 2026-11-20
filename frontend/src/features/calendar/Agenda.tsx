@@ -13,9 +13,14 @@ interface Props {
   calendarHref: string;
   onAdd: () => void;
   onOpen: (item: CalendarItem) => void;
+  onPick: () => void;
+  onComplete: (item: CalendarItem) => void;
+  stepPending: boolean;
 }
 
-export function Agenda({ day, items, loading, failed, filtered, calendarHref, onAdd, onOpen }: Props) {
+export function Agenda({
+  day, items, loading, failed, filtered, calendarHref, onAdd, onOpen, onPick, onComplete, stepPending,
+}: Props) {
   const dayItems = items.filter(item => intersects(item, day)).sort((left, right) =>
     dayTime(left, day).localeCompare(dayTime(right, day)) || left.title.localeCompare(right.title, 'ru'),
   );
@@ -34,11 +39,16 @@ export function Agenda({ day, items, loading, failed, filtered, calendarHref, on
       <h3>{item.title}</h3>
       {scheduleLabel(item, day) && <div className={styles.schedule}>{scheduleLabel(item, day)}</div>}
       {item.kind === 'step'
-        ? <Link to={'/plans/' + encodeURIComponent(item.planId ?? '')} state={{ calendarHref }}>{item.planTitle}</Link>
+        ? <div className={styles.stepActions}>
+          <Link to={'/plans/' + encodeURIComponent(item.planId ?? '')} state={{ calendarHref }}>{item.planTitle}</Link>
+          {!item.done && <Button variant="default" size="compact-sm" disabled={stepPending}
+            onClick={() => onComplete(item)}>Отметить выполненным</Button>}
+        </div>
         : <Button variant="default" size="compact-sm" mt={8} onClick={() => onOpen(item)}>Открыть запись</Button>}
     </article>)}
     <div className={styles.agendaActions}>
       <Button variant="default" onClick={onAdd}>Добавить запись</Button>
+      <Button variant="light" onClick={onPick}>Выбрать шаг из планов</Button>
     </div>
   </Card>;
 }

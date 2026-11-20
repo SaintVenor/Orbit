@@ -46,7 +46,7 @@ export const kindLabels: Record<Kind, string> = {
   deadline: 'Дедлайн', event: 'Событие', birthday: 'День рождения', step: 'Шаг плана',
 };
 export const kindMarks: Record<Kind, string> = {
-  deadline: '⚑', event: '◆', birthday: '♢', step: '○',
+  deadline: '⚑', event: '◆', birthday: '🎁', step: '○',
 };
 const plurals: Record<Kind, [string, string, string]> = {
   deadline: ['дедлайн', 'дедлайна', 'дедлайнов'],

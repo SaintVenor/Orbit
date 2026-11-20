@@ -18,7 +18,18 @@ try {
     await expect(page.getByRole('heading', { name: 'Ноябрь 2026' })).toBeVisible();
     await expect(agenda.getByText('Поездка в Карелию')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    await page.screenshot({ path: fileURLToPath(new URL('prototype-' + name + '.png', output)), fullPage: true });
+    const capture = async (screen = '') => page.screenshot({
+      path: fileURLToPath(new URL('prototype-' + screen + name + '.png', output)),
+      fullPage: true,
+    });
+    await capture();
+    const navigation = page.getByRole('navigation', { name: 'Разделы' });
+    await navigation.getByRole('button', { name: 'Планы' }).click();
+    await expect(page.getByRole('heading', { name: 'Собрать список книг' })).toBeVisible();
+    await expect(page.getByText('1 из 3')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    await capture('gallery-');
+    await navigation.getByRole('button', { name: 'Календарь' }).click();
     await page.getByRole('button', { name: 'Следующий месяц' }).click();
     await expect(agenda.getByText('27 ноя — 2 дек · день 5 из 6')).toBeVisible();
     await review.getByRole('button', { name: 'Ошибка', exact: true }).click();
@@ -31,6 +42,7 @@ try {
     await agenda.getByRole('button', { name: 'Отметить выполненным' }).click();
     await agenda.getByRole('button', { name: 'Снять первый короткий ролик' }).click();
     await expect(page.getByText('2 из 3')).toBeVisible();
+    await capture('plan-');
     await page.close();
     console.log(name, viewport.width + '×' + viewport.height, 'OK');
   }

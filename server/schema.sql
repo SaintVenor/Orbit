@@ -44,3 +44,10 @@ CREATE TABLE IF NOT EXISTS resources (
     title TEXT NOT NULL,
     url TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS plan_operations (
+    kind TEXT NOT NULL CHECK (kind IN ('plan', 'step', 'resource')),
+    id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    PRIMARY KEY (kind, id)
+);

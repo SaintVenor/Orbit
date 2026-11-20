@@ -18,10 +18,16 @@ try {
     await expect(page.getByText('1 дедлайн · 1 событие · 1 день рождения', { exact: true })).toBeVisible();
     await expect(page.getByRole('complementary', { name: 'Повестка' }).getByText('27 ноя — 2 дек · день 2 из 6')).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    await page.screenshot({
-      path: fileURLToPath(new URL('calendar-' + name + '.png', output)),
+    const capture = async (screen) => page.screenshot({
+      path: fileURLToPath(new URL(screen + '-' + name + '.png', output)),
       fullPage: true,
     });
+    await capture('calendar');
+    await page.getByRole('link', { name: 'Планы', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Собрать список книг' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Пройти маршрут вдоль залива' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    await capture('gallery');
     await page.close();
     console.log(name, viewport.width + '×' + viewport.height, 'OK');
   }

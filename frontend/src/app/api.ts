@@ -34,7 +34,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch('/api' + path, options);
   if (!response.ok) {
     const failure = await response.json().catch(() => null);
@@ -51,7 +51,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.status === 204 ? undefined as T : response.json();
 }
 
-function json(method: string, payload: object): RequestInit {
+export function json(method: string, payload: object): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
 }
 

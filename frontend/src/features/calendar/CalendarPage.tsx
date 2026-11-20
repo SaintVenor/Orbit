@@ -5,9 +5,13 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, type Area, type CalendarItem, type EntryFields, type Kind } from '../../app/api';
 import { Header } from '../../app/Header';
+import { useDialog } from '../../app/useDialog';
+import { useMutation } from '../../app/useMutation';
+import { planApi } from '../plans/planApi';
 import { Agenda } from './Agenda';
 import { EntryDialog } from './EntryDialog';
 import { MonthGrid } from './MonthGrid';
+import { StepPicker } from './StepPicker';
 import { asDate, birthdayInViewYear, dateKey, isDateKey, kindLabels, monthDays, monthKey, monthSummary } from './dates';
 import styles from './calendar.module.css';
 
@@ -61,6 +65,8 @@ export function CalendarPage() {
   const [dialog, setDialog] = useState<{ item?: CalendarItem } | null>(null);
   const [notice, setNotice] = useState('');
   const dialogTrigger = useRef<HTMLElement | null>(null);
+  const picker = useDialog<true>();
+  const stepAction = useMutation();
   const filtered = Boolean(area || kind);
   const visible = items.filter(item => (!area || item.area === area) && (!kind || item.kind === kind));
   const summary = monthSummary(visible, range.first, range.last);
@@ -70,6 +76,7 @@ export function CalendarPage() {
     if (!day.startsWith(view)) next.set('month', view);
     setQuery(next);
     setNotice('');
+    stepAction.clearError();
   }
 
   function select(day: string) {
@@ -116,6 +123,21 @@ export function CalendarPage() {
     setDialog({ item });
   }
 
+  function assigned(stepArea: Area) {
+    picker.close();
+    if ((area && area !== stepArea) || (kind && kind !== 'step')) clearFilters();
+    setNotice('Шаг назначен.');
+    refresh();
+  }
+
+  function complete(item: CalendarItem) {
+    void stepAction.submit(() => planApi.editStep(item.id, { done: true }), () => {
+      setNotice('Шаг выполнен.');
+      refresh();
+      requestAnimationFrame(() => document.getElementById('agenda-date')?.focus());
+    });
+  }
+
   const add = () => open();
   const calendarHref = '/calendar' + (query.size ? '?' + query.toString() : '');
 
@@ -144,6 +166,7 @@ export function CalendarPage() {
         {filtered && <Button variant="subtle" onClick={clearFilters}>Сбросить фильтры</Button>}
       </div>
       {notice && <Alert role="status" className={styles.alert}>{notice}</Alert>}
+      {stepAction.error && <Alert color="red" role="alert" className={styles.alert}>{stepAction.error.message}</Alert>}
       {failed && <Alert color="red" role="alert" className={styles.alert}>
         Не удалось загрузить календарь. <Button variant="subtle" size="compact-sm" onClick={refresh}>Повторить</Button>
       </Alert>}
@@ -151,9 +174,11 @@ export function CalendarPage() {
         <MonthGrid days={range.days} month={monthId} today={today} selected={selected}
           items={visible} onSelect={select} onAgenda={openAgenda} onOpen={open} />
         <Agenda day={selected} items={visible} loading={loading && !items.length} failed={failed} filtered={filtered}
-          calendarHref={calendarHref} onAdd={add} onOpen={open} />
+          calendarHref={calendarHref} onAdd={add} onOpen={open} onPick={() => picker.open(true)}
+          onComplete={complete} stepPending={stepAction.busy} />
       </div>
     </main>
+    {picker.value && <StepPicker day={selected} calendarHref={calendarHref} onClose={picker.close} onAssigned={assigned} />}
     {dialog && <EntryDialog day={selected} item={dialog.item} onClose={closeDialog}
       onSaved={saved} onDeleted={() => {
         dialogTrigger.current = document.getElementById('agenda-date');

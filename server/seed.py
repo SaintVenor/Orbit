@@ -25,11 +25,15 @@ def seed(anchor):
                  None, None, None, anchor.month, 24),
             ],
         )
-        db.execute(
+        db.executemany(
             """INSERT OR IGNORE INTO plans (id, title, area, note, motif)
                VALUES (?, ?, ?, ?, ?)""",
-            ("demo-film", "Снять первый короткий ролик", "personal",
-             "Собрать ролик из коротких кадров и попробовать монтаж.", "film"),
+            [
+                ("demo-film", "Снять первый короткий ролик", "personal",
+                 "Собрать ролик из коротких кадров и попробовать монтаж.", "film"),
+                ("demo-route", "Пройти маршрут вдоль залива", "personal", "", "route"),
+                ("demo-books", "Собрать список книг", "personal", "", "grid"),
+            ],
         )
         db.executemany(
             """INSERT OR IGNORE INTO steps (id, plan_id, position, title, done)

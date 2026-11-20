@@ -109,6 +109,7 @@
 .agendaEntry h3 { margin: 2px 0; font: 650 15px var(--mantine-font-family); }
 .schedule { font-size: 14px; }
 .agendaActions { display: grid; gap: 8px; margin-top: 12px; }
+.stepActions { display: grid; justify-items: start; gap: 8px; margin-top: 8px; font-size: 14px; }
 .alert { margin: 0 0 12px; }
 .form { display: grid; gap: 12px; }
 .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -129,6 +130,7 @@
   .segment[data-continuation-end] { border-radius: 5px 0 0 5px; }
   .segment[data-continuation-start][data-continuation-end] { border-radius: 0; }
   .segmentLabel { display: none; }
-  .more { text-align: center; padding: 0; font-size: 9px; }
+  .week:has(.more) { grid-template-rows: 29px repeat(3, 5px) 18px 1px; }
+  .more { text-align: center; padding: 0; font-size: 10px; }
   .agenda { padding: 14px; }
 }
