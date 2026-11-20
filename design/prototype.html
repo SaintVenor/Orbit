@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="ru">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Орбита · интерактивный макет</title>
+  <style>
+    :root {
+      --paper: #f8f6ef;
+      --card: #fffdf8;
+      --line: #d9dbd0;
+      --ink: #242c28;
+      --muted: #5c675f;
+      --pine: #285641;
+      --blue: #324c73;
+      --blue-bg: #e0e9f5;
+      --green-bg: #e3ede4;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font:
+        16px system-ui,
+        sans-serif;
+    }
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+    button {
+      background: var(--card);
+      color: var(--pine);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 8px 12px;
+    }
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--pine);
+      outline-offset: 3px;
+    }
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+    .primary {
+      background: var(--pine);
+      border-color: var(--pine);
+      color: white;
+    }
+    a {
+      color: var(--pine);
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+    }
+    header > div,
+    main,
+    .review > div {
+      max-width: 1320px;
+      margin: auto;
+      padding: 0 28px;
+    }
+    header > div {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .brand {
+      font:
+        700 25px Georgia,
+        serif;
+      color: var(--pine);
+      margin-right: 8px;
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+    }
+    nav button {
+      background: none;
+      border-color: transparent;
+    }
+    nav .active {
+      background: var(--green-bg);
+      font-weight: 650;
+    }
+    header .primary {
+      margin-left: auto;
+    }
+    main {
+      padding-top: 28px;
+      padding-bottom: 40px;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    h1,
+    h2 {
+      font-family: Georgia, serif;
+      font-weight: 400;
+      margin: 0;
+    }
+    h1 {
+      font-size: 56px;
+      line-height: 1.02;
+    }
+    h1 small {
+      font: 500 23px system-ui;
+      color: var(--muted);
+      margin-left: 10px;
+    }
+    h2 {
+      font-size: 29px;
+    }
+    p {
+      line-height: 1.5;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    .tools,
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filters {
+      margin-bottom: 16px;
+    }
+    .filters select,
+    form input,
+    form select {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      padding: 8px 12px;
+      min-width: 0;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+      gap: 20px;
+      align-items: start;
+    }
+    .calendar,
+    .agenda,
+    .plan {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      overflow: hidden;
+    }
+    .week,
+    .head {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .head {
+      font-size: 13px;
+      color: var(--muted);
+      background: #f1f1e8;
+    }
+    .head span {
+      padding: 10px;
+    }
+    .week {
+      position: relative;
+      grid-auto-rows: 23px;
+      grid-template-rows: 34px repeat(3, 17px) 16px;
+    }
+    .day {
+      grid-row: 1/-1;
+      border: 0;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-radius: 0;
+      text-align: left;
+      align-content: start;
+      display: grid;
+      padding: 6px;
+      background: transparent;
+      color: inherit;
+    }
+    .day:nth-child(7) {
+      border-right: 0;
+    }
+    .day span {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .day .selected {
+      color: white;
+      background: var(--pine);
+    }
+    .day .today:not(.selected) {
+      border: 1px solid var(--pine);
+    }
+    .day.other {
+      color: var(--muted);
+      background: #faf9f2;
+    }
+    .week .event {
+      z-index: 1;
+      margin: 1px 3px;
+      padding: 1px 4px;
+      border: 0;
+      border-radius: 5px;
+      font-size: 12px;
+      text-align: left;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+    .event.deadline {
+      background: #f7e2d3;
+      color: #7a3d20;
+    }
+    .event.birthday {
+      background: #ebe5f4;
+      color: #483c69;
+    }
+    .event.step {
+      background: var(--green-bg);
+      color: var(--pine);
+    }
+    .agenda,
+    .plan {
+      padding: 22px;
+    }
+    .agenda > p {
+      margin: 6px 0 18px;
+    }
+    .entry {
+      background: var(--paper);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 3px solid #647ba0;
+    }
+    .entry button,
+    .entry a {
+      margin-top: 5px;
+    }
+    .actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .review {
+      background: #eeeee5;
+      border-top: 1px solid var(--line);
+      padding: 12px 0;
+    }
+    .review > div {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+    .review button {
+      font-size: 13px;
+    }
+    dialog {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 0 16px 72px #242c283b;
+      width: min(460px, calc(100% - 24px));
+      padding: 24px;
+    }
+    dialog::backdrop {
+      background: #242c2866;
+    }
+    .dialog-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .dialog-top button {
+      padding: 4px 10px;
+    }
+    form,
+    label {
+      display: grid;
+      gap: 8px;
+    }
+    form {
+      gap: 12px;
+    }
+    .dates {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .error,
+    .success {
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .error {
+      background: #f7e2d3;
+      color: #7a3d20;
+    }
+    .success {
+      background: var(--green-bg);
+      color: var(--pine);
+    }
+    .cover {
+      height: 120px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      background:
+        repeating-linear-gradient(90deg, #253b31 0 12px, transparent 12px 22px)
+          top/100% 10px no-repeat,
+        repeating-linear-gradient(90deg, #253b31 0 12px, transparent 12px 22px)
+          bottom/100% 10px no-repeat,
+        linear-gradient(120deg, #b9cfb6, #e0e9f5);
+    }
+    .cover.route {
+      background:
+        radial-gradient(
+          ellipse at 20% 105%,
+          transparent 43%,
+          #b1c0aa 43% 44%,
+          transparent 44% 54%,
+          #91a990 54% 55%,
+          transparent 55% 66%,
+          #6e8e75 66% 67%,
+          transparent 67%
+        ),
+        #dfe8d7;
+    }
+    .cover.grid {
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent 0 14px,
+          #a6875f55 14px 15px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 14px,
+          #a6875f55 14px 15px
+        ),
+        #f0e0c4;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .gallery article {
+      margin: 0;
+    }
+    .gallery h2 {
+      font-size: 23px;
+    }
+    .plan {
+      max-width: 720px;
+    }
+    .plan li {
+      padding: 8px;
+    }
+    .plan input {
+      accent-color: var(--pine);
+    }
+    @media (max-width: 700px) {
+      header > div,
+      main,
+      .review > div {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      header > div {
+        gap: 5px;
+        flex-wrap: wrap;
+        min-height: 52px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+      }
+      .brand {
+        font-size: 19px;
+      }
+      nav {
+        gap: 0;
+      }
+      nav button,
+      header .primary {
+        padding: 5px;
+        font-size: 12px;
+      }
+      main {
+        padding-top: 20px;
+      }
+      .top {
+        display: grid;
+        gap: 8px;
+      }
+      .top p {
+        margin: 6px 0;
+      }
+      h1 {
+        font-size: 36px;
+      }
+      h1 small {
+        font-size: 17px;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+      }
+      .head span {
+        text-align: center;
+        padding: 5px;
+      }
+      .week {
+        grid-template-rows: 28px repeat(3, 5px) 2px;
+      }
+      .day {
+        padding: 2px;
+        justify-content: center;
+      }
+      .day span {
+        width: 26px;
+        height: 26px;
+      }
+      .week .event {
+        font-size: 0;
+        padding: 0;
+        margin: 0 0 2px;
+        border-radius: 5px;
+        background: #738ab2;
+      }
+      .week .event.deadline {
+        margin-inline: 7px;
+        background: #aa6846;
+      }
+      .week .event.birthday {
+        margin-inline: 7px;
+        background: #9179ad;
+      }
+      .week .event.step {
+        margin-inline: 7px;
+        background: #63906d;
+      }
+      .agenda,
+      .plan {
+        padding: 16px;
+      }
+    }
+  </style>
+  <header>
+    <div>
+      <span class="brand">◉ Орбита</span>
+      <nav aria-label="Разделы">
+        <button data-action="calendar">Календарь</button
+        ><button data-action="plans">Планы</button>
+      </nav>
+      <button class="primary" data-action="add">＋ Добавить запись</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <aside class="review" aria-label="Проверка макета">
+    <div>
+      <strong>Состояния макета</strong><button data-action="month">Месяц</button
+      ><button data-action="empty">Пустой день</button
+      ><button data-action="pick">Выбор шага</button
+      ><button data-action="filled">Заполненная форма</button
+      ><button data-action="pending">Отправка</button
+      ><button data-action="success">Успех</button
+      ><button data-action="error">Ошибка</button
+      ><button data-action="plan">Открытый план</button>
+    </div>
+  </aside>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <script>
+    const app = document.querySelector("#app");
+    const dialog = document.querySelector("#dialog");
+    const months = [
+      "Январь",
+      "Февраль",
+      "Март",
+      "Апрель",
+      "Май",
+      "Июнь",
+      "Июль",
+      "Август",
+      "Сентябрь",
+      "Октябрь",
+      "Ноябрь",
+      "Декабрь",
+    ];
+    const travel = {
+      kind: "event",
+      title: "Поездка в Карелию",
+      from: "2026-11-27",
+      to: "2026-12-02",
+      area: "personal",
+    };
+    const entries = [
+      travel,
+      {
+        kind: "deadline",
+        title: "Лабораторная по алгоритмам",
+        from: "2026-11-20",
+        to: "2026-11-20",
+        area: "study",
+      },
+      {
+        kind: "birthday",
+        title: "День рождения Саши",
+        from: "2026-11-24",
+        to: "2026-11-24",
+        area: "personal",
+      },
+    ];
+    const labels = {
+      event: "Событие",
+      deadline: "Дедлайн",
+      birthday: "День рождения",
+      step: "Шаг плана",
+    };
+    const marks = { event: "◆", deadline: "⚑", birthday: "♢", step: "✓" };
+    let selected = "2026-11-28",
+      month = 10,
+      year = 2026,
+      section = "calendar",
+      stepDate,
+      done = false,
+      notice = "",
+      area = "",
+      kind = "";
+    const iso = (date) => date.toISOString().slice(0, 10);
+    const dateFrom = (value) => new Date(value + "T00:00:00Z");
+    const formatDay = (value) =>
+      dateFrom(value).toLocaleDateString("ru", {
+        timeZone: "UTC",
+        day: "numeric",
+        month: "long",
+      });
+    const escapeHtml = (value) =>
+      String(value).replace(
+        /[&<>"']/g,
+        (symbol) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[symbol],
+      );
+    const escape = escapeHtml;
+    function visibleEntries() {
+      const all = stepDate
+        ? [
+            ...entries,
+            {
+              kind: "step",
+              title: "Собрать черновик",
+              from: stepDate,
+              to: stepDate,
+              area: "personal",
+            },
+          ]
+        : entries;
+      return all.filter(
+        (item) =>
+          (!area || item.area === area) && (!kind || item.kind === kind),
+      );
+    }
+    function weekMarkup(days, items) {
+      const spans = items.filter(
+        (item) =>
+          item.from !== item.to && item.from <= days[6] && item.to >= days[0],
+      );
+      const lanes = Array.from({ length: 7 }, () => [false, false, false]);
+      function segment(item) {
+        const first = item.from <= days[0] ? 0 : days.indexOf(item.from);
+        const last = item.to >= days[6] ? 6 : days.indexOf(item.to);
+        const lane = lanes[first].findIndex((_, index) =>
+          lanes.slice(first, last + 1).every((day) => !day[index]),
+        );
+        if (lane < 0) return "";
+        lanes.slice(first, last + 1).forEach((day) => (day[lane] = true));
+        const caption =
+          (item.from < days[0] ? "‹ " : "") +
+          marks[item.kind] +
+          " " +
+          item.title +
+          (item.to > days[6] ? " ›" : "");
+        return (
+          '<button class="event ' +
+          item.kind +
+          '" style="grid-row:' +
+          (lane + 2) +
+          ";grid-column:" +
+          (first + 1) +
+          "/" +
+          (last + 2) +
+          '" data-entry="' +
+          entries.indexOf(item) +
+          '" data-day="' +
+          days[first] +
+          '" aria-label="' +
+          escape(item.title) +
+          '">' +
+          escape(caption) +
+          "</button>"
+        );
+      }
+      return (
+        '<div class="week">' +
+        days
+          .map(
+            (day, index) =>
+              '<button class="day ' +
+              (dateFrom(day).getUTCMonth() !== month ? "other" : "") +
+              '" style="grid-column:' +
+              (index + 1) +
+              '" data-date="' +
+              day +
+              '" aria-label="' +
+              formatDay(day) +
+              '" aria-pressed="' +
+              (selected === day) +
+              '"><span class="' +
+              (selected === day ? "selected" : "") +
+              (day === "2026-11-20" ? " today" : "") +
+              '">' +
+              dateFrom(day).getUTCDate() +
+              "</span></button>",
+          )
+          .join("") +
+        spans.map(segment).join("") +
+        items
+          .filter((item) => item.from === item.to && days.includes(item.from))
+          .map(segment)
+          .join("") +
+        "</div>"
+      );
+    }
+    function render() {
+      document
+        .querySelectorAll("nav button")
+        .forEach((button) =>
+          button.classList.toggle(
+            "active",
+            button.dataset.action === section ||
+              (button.dataset.action === "plans" && section === "plan"),
+          ),
+        );
+      if (section === "plans") {
+        app.innerHTML =
+          '<h1>Планы</h1><div class="gallery"><article class="plan"><div class="cover"></div><h2>Снять первый короткий ролик</h2><p>' +
+          (done ? "2" : "1") +
+          ' из 3</p><button data-action="plan">' +
+          (done ? "Посмотреть ролик целиком" : "Собрать черновик") +
+          '</button></article><article class="plan"><div class="cover route"></div><h2>Пройти маршрут вдоль залива</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article><article class="plan"><div class="cover grid"></div><h2>Собрать список книг</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article></div>';
+        return;
+      }
+      if (section === "plan") {
+        app.innerHTML =
+          '<button data-action="calendar">К календарю</button><p></p><article class="plan"><div class="cover"></div><h1>Снять первый короткий ролик</h1><p class="muted">Собрать ролик из коротких кадров и попробовать монтаж.</p><p><strong>' +
+          (done ? "2" : "1") +
+          ' из 3</strong></p><h2>Шаги</h2><ol><li>✓ Посмотреть урок</li><li><label style="display:inline"><input id="done" type="checkbox" ' +
+          (done ? "checked" : "") +
+          "> Собрать черновик</label> " +
+          (stepDate
+            ? '<span class="muted">· ' + formatDay(stepDate) + "</span>"
+            : "") +
+          '</li><li>Посмотреть ролик целиком</li></ol><h2>Материалы</h2><p><a href="https://www.blender.org/support/tutorials/">Урок по монтажу</a></p></article>';
+        return;
+      }
+      const items = visibleEntries(),
+        first = new Date(Date.UTC(year, month, 1)),
+        last = new Date(Date.UTC(year, month + 1, 0));
+      const cursor = new Date(first);
+      cursor.setUTCDate(1 - ((first.getUTCDay() + 6) % 7));
+      const weeks = [];
+      do {
+        const week = [];
+        for (let i = 0; i < 7; i++) {
+          week.push(iso(cursor));
+          cursor.setUTCDate(cursor.getUTCDate() + 1);
+        }
+        weeks.push(week);
+      } while (cursor <= last);
+      const counts = Object.keys(labels)
+        .flatMap((type) => {
+          const count = items.filter(
+            (item) =>
+              item.kind === type &&
+              item.from <= iso(last) &&
+              item.to >= iso(first),
+          ).length;
+          return count ? [count + " · " + labels[type]] : [];
+        })
+        .join(" / ");
+      const dayItems = items.filter(
+        (item) => item.from <= selected && item.to >= selected,
+      );
+      app.innerHTML =
+        '<div class="top"><div><h1>' +
+        months[month] +
+        " <small>" +
+        year +
+        '</small></h1><p class="muted">' +
+        (counts || "В этом месяце пока нет записей") +
+        '</p></div><div class="tools"><button data-action="prev" aria-label="Предыдущий месяц">‹</button><button data-action="next" aria-label="Следующий месяц">›</button><button data-action="today">Сегодня</button></div></div><div class="filters"><select id="area" aria-label="Сфера"><option value="">Все сферы</option><option value="study">Учёба</option><option value="personal">Личное</option></select><select id="kind" aria-label="Тип"><option value="">Все типы</option>' +
+        Object.entries(labels)
+          .map(
+            ([key, label]) =>
+              '<option value="' + key + '">' + label + "</option>",
+          )
+          .join("") +
+        "</select>" +
+        (area || kind
+          ? '<button data-action="reset">Сбросить фильтры</button>'
+          : "") +
+        "</div>" +
+        (notice ? '<p class="success" role="status">' + notice + "</p>" : "") +
+        '<div class="layout"><section class="calendar" aria-label="Месяц"><div class="head">' +
+        ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+          .map((day) => "<span>" + day + "</span>")
+          .join("") +
+        "</div>" +
+        weeks.map((week) => weekMarkup(week, items)).join("") +
+        '</section><aside class="agenda" aria-label="Повестка"><h2>' +
+        formatDay(selected) +
+        '</h2><p class="muted">Повестка дня</p>' +
+        dayItems
+          .map(
+            (item) =>
+              '<div class="entry"><small>' +
+              marks[item.kind] +
+              " " +
+              labels[item.kind] +
+              "</small><br><strong>" +
+              escape(item.title) +
+              "</strong><br>" +
+              (item === travel
+                ? "27 ноя — 2 дек · день " +
+                  ((dateFrom(selected) - dateFrom(item.from)) / 86400000 + 1) +
+                  " из 6<br>"
+                : item.kind === "deadline"
+                  ? "Сдать до 18:00<br>"
+                  : "") +
+              (item.kind === "step"
+                ? '<button data-action="plan">Снять первый короткий ролик</button> ' +
+                  (done
+                    ? "✓ Выполнен"
+                    : '<button data-action="done">Отметить выполненным</button>')
+                : '<button data-entry="' +
+                  entries.indexOf(item) +
+                  '">Открыть запись</button>') +
+              "</div>",
+          )
+          .join("") +
+        (!dayItems.length
+          ? "<p>На этот день ничего не запланировано.</p>"
+          : "") +
+        '<div class="actions"><button data-action="add">Добавить запись</button><button data-action="pick">Выбрать шаг из планов</button></div></aside></div>';
+      document.querySelector("#area").value = area;
+      document.querySelector("#kind").value = kind;
+    }
+    function selectDay(day) {
+      selected = day;
+      month = dateFrom(day).getUTCMonth();
+      year = dateFrom(day).getUTCFullYear();
+      section = "calendar";
+      notice = "";
+      render();
+    }
+    function openDialog(title, contents) {
+      dialog.innerHTML =
+        '<div class="dialog-top"><h2 id="dialog-title">' +
+        title +
+        '</h2><button data-action="close" aria-label="Закрыть">×</button></div>' +
+        contents;
+      if (!dialog.open) dialog.showModal();
+    }
+    function showForm(mode, item) {
+      const pending = mode === "pending",
+        failure = mode === "error";
+      const record =
+        item ??
+        (mode === "add"
+          ? {
+              title: "",
+              from: selected,
+              to: selected,
+              kind: "event",
+              area: "personal",
+            }
+          : travel);
+      openDialog(
+        item ? "Редактировать запись" : "Добавить запись",
+        '<form id="entry-form" data-index="' +
+          entries.indexOf(item) +
+          '">' +
+          (failure
+            ? '<div class="error" role="alert">Не удалось сохранить запись. Повторите попытку.</div>'
+            : "") +
+          '<label>Тип записи<select name="kind">' +
+          Object.entries(labels)
+            .filter(([key]) => key !== "step")
+            .map(
+              ([key, label]) =>
+                '<option value="' +
+                key +
+                '" ' +
+                (key === record.kind ? "selected" : "") +
+                ">" +
+                label +
+                "</option>",
+            )
+            .join("") +
+          '</select></label><label>Название<input name="title" required value="' +
+          escape(record.title) +
+          '"></label><label>Сфера<select name="area"><option value="personal">Личное</option><option value="study" ' +
+          (record.area === "study" ? "selected" : "") +
+          '>Учёба</option></select></label><div class="dates"><label>Начало<input required name="from" type="date" value="' +
+          record.from +
+          '"></label><label>Окончание<input required name="to" type="date" value="' +
+          record.to +
+          '"></label></div><button class="primary" ' +
+          (pending ? "disabled" : "") +
+          ">" +
+          (pending ? "Сохраняем…" : "Сохранить") +
+          "</button></form>",
+      );
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      if (button.dataset.date) {
+        selectDay(button.dataset.date);
+        return;
+      }
+      if (button.dataset.entry !== undefined) {
+        if (button.dataset.day) selectDay(button.dataset.day);
+        const item = entries[Number(button.dataset.entry)];
+        if (item) showForm("edit", item);
+        else {
+          section = "plan";
+          render();
+        }
+        return;
+      }
+      switch (button.dataset.action) {
+        case "today":
+          selectDay("2026-11-20");
+          break;
+        case "month":
+          selectDay("2026-11-28");
+          break;
+        case "empty":
+          selectDay("2026-11-21");
+          break;
+        case "prev":
+          selectDay(iso(new Date(Date.UTC(year, month - 1, 1))));
+          break;
+        case "next":
+          selectDay(iso(new Date(Date.UTC(year, month + 1, 1))));
+          break;
+        case "calendar":
+        case "plans":
+        case "plan":
+          section = button.dataset.action;
+          render();
+          break;
+        case "reset":
+          area = "";
+          kind = "";
+          render();
+          break;
+        case "pick":
+          section = "calendar";
+          render();
+          openDialog(
+            "Выбрать шаг из планов",
+            stepDate
+              ? '<p>Свободных шагов для примера больше нет.</p><button data-action="open-plans">К планам</button>'
+              : '<p class="muted">' +
+                  formatDay(selected) +
+                  '</p><p>Снять первый короткий ролик</p><button class="primary" data-action="assign">Собрать черновик</button>',
+          );
+          break;
+        case "open-plans":
+          dialog.close();
+          section = "plans";
+          render();
+          break;
+        case "assign":
+          stepDate = selected;
+          dialog.close();
+          notice = "Шаг назначен на " + formatDay(selected);
+          render();
+          break;
+        case "done":
+          done = true;
+          render();
+          break;
+        case "add":
+        case "filled":
+        case "pending":
+        case "error":
+          showForm(button.dataset.action);
+          break;
+        case "success":
+          selectDay("2026-11-28");
+          notice = "Запись сохранена";
+          render();
+          break;
+        case "close":
+          dialog.close();
+          break;
+      }
+    });
+    document.addEventListener("change", (event) => {
+      if (event.target.id === "done") {
+        done = event.target.checked;
+        render();
+      }
+      if (event.target.id === "area") {
+        area = event.target.value;
+        render();
+      }
+      if (event.target.id === "kind") {
+        kind = event.target.value;
+        render();
+      }
+    });
+    document.addEventListener("submit", (event) => {
+      if (event.target.id !== "entry-form") return;
+      event.preventDefault();
+      const form = event.target,
+        item = Object.fromEntries(new FormData(form));
+      if (item.to < item.from) {
+        form.elements.to.setCustomValidity("Окончание раньше начала");
+        form.elements.to.reportValidity();
+        form.elements.to.oninput = () => form.elements.to.setCustomValidity("");
+        return;
+      }
+      const submit = form.querySelector("button");
+      submit.disabled = true;
+      submit.textContent = "Сохраняем…";
+      setTimeout(() => {
+        if (!dialog.open || !form.isConnected) return;
+        const index = Number(form.dataset.index);
+        if (index >= 0) Object.assign(entries[index], item);
+        else entries.push(item);
+        dialog.close();
+        selectDay(item.from);
+        notice = "Запись сохранена";
+        render();
+      }, 450);
+    });
+    render();
+  </script>
+</html>
