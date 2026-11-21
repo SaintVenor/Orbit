@@ -1,12 +1,13 @@
 import type { CalendarItem } from '../../app/api';
 import { asDate, dayTime, fullDate, intersects, itemKey, kindLabels, scheduleLabel } from './dates';
-import { lessonsOn, type Lesson } from './lessons';
+import { lessonLabel, lessonsOn, type Lesson, type LessonType } from './lessons';
 import css from './week.module.css';
 
 interface Block {
   key: string;
   title: string;
   kind: CalendarItem['kind'] | 'lesson';
+  lessonType?: LessonType | null;
   detail: string;
   start: string;
   end: string;
@@ -42,7 +43,7 @@ export function WeekView({ days, selected, today, items, lessons, onSelect, onOp
       };
     }),
     ...lessonsOn(lessons, day).map((lesson): Block => ({
-      key: 'lesson:' + lesson.id, title: lesson.subject, kind: 'lesson',
+      key: 'lesson:' + lesson.id, title: lesson.subject, kind: 'lesson', lessonType: lesson.lessonType,
       start: lesson.startTime, end: lesson.endTime,
       detail: lesson.startTime + '–' + lesson.endTime + ' · Ауд. ' + lesson.room,
       open: () => onLesson(lesson),
@@ -65,13 +66,14 @@ export function WeekView({ days, selected, today, items, lessons, onSelect, onOp
     {visible[selectedIndex]?.length === 0 && times.length > 0 && <p className={css.mobileEmpty}>На выбранный день нет записей.</p>}
     {times.map(time => {
       const cells = visible.map(list => list.filter(block => block.start === time));
-      return <div className={css.timeBand} key={time || 'all-day'} data-empty-day={!cells[selectedIndex]?.length || undefined}>
+      return <div className={css.timeBand} key={time || 'all-day'} data-empty-day={!cells[selectedIndex]?.some(block => block.kind !== 'step') || undefined}>
         <div className={css.time}>{time || 'Весь день'}</div>
         {cells.map((blocks, index) => <div className={css.cell} key={days[index]} data-current={index === selectedIndex || undefined}>
           {blocks.map(block => {
             const conflict = hasConflict(block, visible[index]);
             return <button className={css.block + (block.kind === 'lesson' ? '' : ' kind-' + block.kind)}
-              data-lesson={block.kind === 'lesson' || undefined} key={block.key} type="button" onClick={block.open}>
+              data-lesson={block.kind === 'lesson' ? block.lessonType ?? 'other' : undefined} key={block.key} type="button" onClick={block.open}>
+              {block.kind === 'lesson' && <span className={css.type}>{lessonLabel(block.lessonType)}</span>}
               <strong>{block.title}</strong><span>{block.detail}</span>
               {conflict && <small>Пересечение</small>}
             </button>;

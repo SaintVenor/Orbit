@@ -24,6 +24,7 @@ class LessonFields(BaseModel):
     termEnd: str
     weekInterval: Literal[1, 2] = 1
     firstDate: str | None = None
+    lessonType: Literal["lecture", "practice", "lab", "consultation"] | None = None
 
 
 class CreateLesson(LessonFields):
@@ -73,7 +74,7 @@ def list_lessons(start_raw: str = Query(alias="from"), end_raw: str = Query(alia
 def create_lesson(fields: CreateLesson):
     validate_lesson(fields)
     data = fields.model_dump()
-    replay_data = {key: value for key, value in data.items() if (key, value) not in (("weekInterval", 1), ("firstDate", None))}
+    replay_data = {key: value for key, value in data.items() if (key, value) not in (("weekInterval", 1), ("firstDate", None), ("lessonType", None))}
     payload = json.dumps(replay_data, sort_keys=True)
     with connect() as db:
         db.execute("BEGIN IMMEDIATE")
@@ -88,8 +89,8 @@ def create_lesson(fields: CreateLesson):
             raise HTTPException(409, "Этот идентификатор уже занят.")
 
         db.execute(
-            """INSERT INTO lessons (id, weekday, subject, room, startTime, endTime, termStart, termEnd, weekInterval, firstDate)
-               VALUES (:id, :weekday, :subject, :room, :startTime, :endTime, :termStart, :termEnd, :weekInterval, :firstDate)""",
+            """INSERT INTO lessons (id, weekday, subject, room, startTime, endTime, termStart, termEnd, weekInterval, firstDate, lessonType)
+               VALUES (:id, :weekday, :subject, :room, :startTime, :endTime, :termStart, :termEnd, :weekInterval, :firstDate, :lessonType)""",
             data,
         )
         db.execute("INSERT INTO lesson_operations (id, payload) VALUES (?, ?)", (fields.id, payload))
@@ -103,7 +104,7 @@ def update_lesson(lesson_id: str, fields: LessonFields):
         result = db.execute(
             """UPDATE lessons SET weekday=:weekday, subject=:subject, room=:room,
                startTime=:startTime, endTime=:endTime, termStart=:termStart, termEnd=:termEnd,
-               weekInterval=:weekInterval, firstDate=:firstDate
+               weekInterval=:weekInterval, firstDate=:firstDate, lessonType=:lessonType
                WHERE id=:id""",
             {**fields.model_dump(), "id": lesson_id},
         )

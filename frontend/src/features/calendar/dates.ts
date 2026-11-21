@@ -93,3 +93,9 @@ export function scheduleLabel(item: CalendarItem, day: string) {
   if (item.endTime && day === item.endDate) return range + ' · Окончание в ' + item.endTime;
   return range;
 }
+
+export function formatDuration(minutes: number) {
+  if (minutes <= 60) return minutes + ' мин';
+  const rest = minutes % 60;
+  return Math.floor(minutes / 60) + ' ч' + (rest ? ' ' + rest + ' мин' : '');
+}

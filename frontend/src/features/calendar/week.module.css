@@ -19,7 +19,11 @@
 .mobileEmpty { display: none; }
 @media (max-width: 780px) {
   .dayStrip { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-  .timeHead, .cell:not([data-current]), .timeBand[data-empty-day] { display: none; }
+  .timeHead, .cell:not([data-current]), .timeBand[data-empty-day], .block:global(.kind-step) { display: none; }
   .timeBand { grid-template-columns: 70px minmax(0, 1fr); }
   .mobileEmpty { display: block; }
 }
+
+.block { color:var(--ink); }
+.block[data-lesson] { border-color:var(--lesson-mark); color:var(--ink); }
+.block .type { color:var(--lesson); font-weight:700; margin:0 0 3px; }

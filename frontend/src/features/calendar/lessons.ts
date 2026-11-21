@@ -2,6 +2,12 @@ import { getISODay } from 'date-fns';
 import { json, request } from '../../app/api';
 import { asDate, daysBetween, moveDay } from './dates';
 
+export const lessonTypes = {
+  lecture: 'Лекция', practice: 'Практика', lab: 'Лабораторная', consultation: 'Консультация',
+} as const;
+export type LessonType = keyof typeof lessonTypes;
+export const lessonLabel = (type?: LessonType | null) => type ? lessonTypes[type] : 'Пара';
+
 export interface LessonFields {
   weekday: number;
   subject: string;
@@ -12,6 +18,7 @@ export interface LessonFields {
   termEnd: string;
   weekInterval?: 1 | 2;
   firstDate?: string | null;
+  lessonType?: LessonType | null;
 }
 
 export interface Lesson extends LessonFields {

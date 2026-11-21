@@ -1,6 +1,5 @@
 import { Alert, Button, Modal, Skeleton, Stack, Text } from '@mantine/core';
 import { Link } from 'react-router-dom';
-import type { Area } from '../../app/api';
 import { useLoad } from '../../app/useLoad';
 import { useMutation } from '../../app/useMutation';
 import { planApi, type AvailableStep } from '../plans/planApi';
@@ -11,7 +10,7 @@ interface Props {
   day: string;
   calendarHref: string;
   onClose: () => void;
-  onAssigned: (area: Area) => void;
+  onAssigned: (step: AvailableStep) => void;
 }
 
 export function StepPicker({ day, calendarHref, onClose, onAssigned }: Props) {
@@ -19,7 +18,7 @@ export function StepPicker({ day, calendarHref, onClose, onAssigned }: Props) {
   const { busy, error, submit, isLocked } = useMutation();
 
   function assign(step: AvailableStep) {
-    void submit(() => planApi.editStep(step.id, { scheduledDate: day }), () => onAssigned(step.area));
+    void submit(() => planApi.editStep(step.id, { scheduledDate: day }), () => onAssigned(step));
   }
 
   const groups = new Map<string, AvailableStep[]>();

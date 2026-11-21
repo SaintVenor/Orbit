@@ -19,10 +19,10 @@ function PlanGroup({ title, plans, state }: { title: string; plans: PlanCard[]; 
         return <Card className={styles.card} key={plan.id} withBorder padding="lg" radius="lg">
           <PlanCover motif={plan.motif} cover={plan.cover} />
           <h3><Link className={styles.cardLink} to={href} state={state}>{plan.title}</Link></h3>
-          <div className={styles.cardProgress}>
+          {plan.steps.length > 0 && <div className={styles.cardProgress}>
             <progress aria-label="Прогресс плана" value={done} max={plan.steps.length || 1} />
             <span>{done} из {plan.steps.length}</span>
-          </div>
+          </div>}
           {next ? <p className={styles.next}><span>Далее</span> <strong>{next.title}</strong></p>
             : plan.steps.length ? <p className={styles.next}>Все шаги выполнены</p>
               : <Button className={styles.firstStep} component={Link} to={href + '?add=step'} state={state}

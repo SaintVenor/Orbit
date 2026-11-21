@@ -56,8 +56,8 @@ if (mode === 'setup') {
   }
 } else if (mode === 'dev') {
   const test = env.ORBIT_TEST_RUN === '1';
-  const apiPort = test ? '8108' : '8000';
-  const webPort = test ? '5188' : '5173';
+  const apiPort = test ? (env.ORBIT_TEST_API_PORT ?? '8108') : '8000';
+  const webPort = test ? (env.ORBIT_TEST_WEB_PORT ?? '5188') : '5173';
   const options = { stdio: 'inherit', env: { ...env, ORBIT_API_PORT: apiPort } };
   const children = [
     spawn(python, ['-m', 'uvicorn', 'server.main:app', '--host', '127.0.0.1', '--port', apiPort], options),

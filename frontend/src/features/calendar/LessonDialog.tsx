@@ -3,7 +3,7 @@ import { getISODay } from 'date-fns';
 import { useState, type FormEvent } from 'react';
 import { useMutation, useOperationId } from '../../app/useMutation';
 import { asDate, daysBetween, isDateKey } from './dates';
-import { lessonApi, weekdays, type Lesson, type LessonFields } from './lessons';
+import { lessonApi, lessonTypes, weekdays, type Lesson, type LessonFields, type LessonType } from './lessons';
 import styles from './calendar.module.css';
 
 interface Props {
@@ -51,6 +51,9 @@ export function LessonDialog({ day, lesson, onClose, onSaved, onRemoved }: Props
   const [draft, setDraft] = useState(() => initialFields(day, lesson));
   const [errors, setErrors] = useState<ReturnType<typeof validate>>({});
   const [confirm, setConfirm] = useState(false);
+  // A one-day semester represents exactly one occurrence in the existing API.
+  const [once, setOnce] = useState(Boolean(lesson && lesson.termStart === lesson.termEnd));
+  const [singleDate, setSingleDate] = useState(lesson?.termStart ?? day);
   const [semester, setSemester] = useState('manual');
   const { submit, busy, error, isLocked, clearError } = useMutation();
   const operationId = useOperationId();
@@ -75,7 +78,15 @@ export function LessonDialog({ day, lesson, onClose, onSaved, onRemoved }: Props
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isLocked()) return;
-    const issues = validate(draft);
+    if (once && !isDateKey(singleDate)) {
+      setErrors({ termStart: 'Укажите дату пары.' });
+      const input = event.currentTarget.elements.namedItem('termStart');
+      if (input instanceof HTMLElement) input.focus();
+      return;
+    }
+    const schedule: LessonFields = once ? { ...draft, weekday: getISODay(asDate(singleDate)),
+      termStart: singleDate, termEnd: singleDate, weekInterval: 1, firstDate: null } : draft;
+    const issues = validate(schedule);
     setErrors(issues);
     const first = Object.keys(issues)[0];
     if (first) {
@@ -84,7 +95,7 @@ export function LessonDialog({ day, lesson, onClose, onSaved, onRemoved }: Props
       return;
     }
 
-    const fields = { ...draft, subject: draft.subject.trim(), room: draft.room.trim() };
+    const fields = { ...schedule, subject: draft.subject.trim(), room: draft.room.trim() };
     void submit(() => lesson
       ? lessonApi.edit(lesson.id, fields)
       : lessonApi.create(operationId(fields), fields), onSaved);
@@ -109,9 +120,12 @@ export function LessonDialog({ day, lesson, onClose, onSaved, onRemoved }: Props
         required maxLength={120} error={fieldError('subject')} onChange={event => change('subject', event.currentTarget.value)} />
       <TextInput name="room" label="Аудитория" value={draft.room} readOnly={busy}
         required maxLength={80} error={fieldError('room')} onChange={event => change('room', event.currentTarget.value)} />
-      <NativeSelect name="weekday" label="День недели" value={String(draft.weekday)} disabled={busy}
+      <NativeSelect name="lessonType" label="Тип пары" value={draft.lessonType ?? ''} disabled={busy}
+        data={[{ value: '', label: 'Без типа' }, ...Object.entries(lessonTypes).map(([value, label]) => ({ value, label }))]}
+        error={fieldError('lessonType')} onChange={event => change('lessonType', (event.currentTarget.value || null) as LessonType | null)} />
+      {!once && <NativeSelect name="weekday" label="День недели" value={String(draft.weekday)} disabled={busy}
         data={weekdays.map((label, index) => ({ value: String(index + 1), label }))}
-        error={fieldError('weekday')} onChange={event => change('weekday', Number(event.currentTarget.value))} />
+        error={fieldError('weekday')} onChange={event => change('weekday', Number(event.currentTarget.value))} />}
       <div className={styles.pair}>
         <TextInput name="startTime" label="Начало пары" type="time" value={draft.startTime} readOnly={busy}
           required withAsterisk={false} error={fieldError('startTime')} onChange={event => change('startTime', event.currentTarget.value)} />
@@ -119,20 +133,30 @@ export function LessonDialog({ day, lesson, onClose, onSaved, onRemoved }: Props
           required withAsterisk={false} error={fieldError('endTime')} onChange={event => change('endTime', event.currentTarget.value)} />
       </div>
       <div className={styles.pair}>
-        <NativeSelect name="weekInterval" label="Повторение пары" value={String(draft.weekInterval ?? 1)} disabled={busy}
-          data={[{ value: '1', label: 'Каждую неделю' }, { value: '2', label: 'Раз в две недели' }]}
-          onChange={event => change('weekInterval', event.currentTarget.value === '2' ? 2 : 1)} />
-        <NativeSelect label="Семестр" value={semester} disabled={busy}
+        <NativeSelect name="weekInterval" label="Повторение пары" value={once ? 'once' : String(draft.weekInterval ?? 1)} disabled={busy}
+          data={[{ value: 'once', label: 'Однократно' }, { value: '1', label: 'Каждую неделю' }, { value: '2', label: 'Раз в две недели' }]}
+          onChange={event => {
+            const value = event.currentTarget.value;
+            setOnce(value === 'once');
+            change('weekInterval', value === '2' ? 2 : 1);
+            setErrors({});
+          }} />
+        {!once && <NativeSelect label="Семестр" value={semester} disabled={busy}
           data={[{ value: 'manual', label: 'Свои даты' }, { value: 'autumn', label: 'Осенний' }, { value: 'spring', label: 'Весенний' }]}
-          onChange={event => chooseSemester(event.currentTarget.value)} />
+          onChange={event => chooseSemester(event.currentTarget.value)} />}
       </div>
-      <div className={styles.pair}>
+      {once ? <TextInput name="termStart" label="Дата пары" type="date" value={singleDate} readOnly={busy}
+        error={fieldError('termStart')} onChange={event => {
+          setSingleDate(event.currentTarget.value);
+          setErrors({});
+          clearError();
+        }} /> : <div className={styles.pair}>
         <TextInput name="termStart" label="Начало семестра" type="date" value={draft.termStart} readOnly={busy}
           required withAsterisk={false} error={fieldError('termStart')} onChange={event => { setSemester('manual'); change('termStart', event.currentTarget.value); }} />
         <TextInput name="termEnd" label="Конец семестра" type="date" value={draft.termEnd} readOnly={busy}
           required withAsterisk={false} error={fieldError('termEnd')} onChange={event => { setSemester('manual'); change('termEnd', event.currentTarget.value); }} />
-      </div>
-      {(draft.weekInterval === 2 || draft.firstDate) && <TextInput name="firstDate" label="Дата первой пары" type="date"
+      </div>}
+      {!once && (draft.weekInterval === 2 || draft.firstDate) && <TextInput name="firstDate" label="Дата первой пары" type="date"
         description="Задаёт, с какой недели начнутся повторы. Можно оставить пустой."
         value={draft.firstDate ?? ''} readOnly={busy} error={fieldError('firstDate')}
         onChange={event => change('firstDate', event.currentTarget.value || null)} />}

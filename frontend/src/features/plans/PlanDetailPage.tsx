@@ -89,10 +89,10 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
         </div>
       </div>
       {plan.note && <p className={styles.note}>{plan.note}</p>}
-      <div className={styles.progress}>
+      {plan.steps.length > 0 && <div className={styles.progress}>
         <label htmlFor="plan-progress">{count} из {plan.steps.length}</label>
-        <progress id="plan-progress" value={count} max={plan.steps.length || 1} />
-      </div>
+        <progress id="plan-progress" value={count} max={plan.steps.length} />
+      </div>}
 
       {error && <Alert color="red" role="alert">{error.message}</Alert>}
       <section className={styles.section} aria-labelledby="steps-heading">
@@ -102,6 +102,7 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
             {plan.steps.length ? 'Добавить шаг' : 'Добавить первый шаг'}
           </Button>
         </div>
+        {plan.steps.length === 0 && <p className={styles.sectionEmpty}>Шагов пока нет.</p>}
         {plan.steps.length > 0 && <ol className={styles.list}>
           {plan.steps.map((step, index) => <li className={styles.row} key={step.id} data-drop={dropTarget === step.id || undefined}
             onDragOver={event => { if (dragged.current) { event.preventDefault(); setDropTarget(step.id); } }}
@@ -147,7 +148,7 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
           <h2 id="materials-heading">Материалы</h2>
           <Button variant="light" disabled={busy} onClick={() => dialog.open({ kind: 'resource' })}>Добавить материал</Button>
         </div>
-        {plan.resources.length === 0 && <p className={styles.next}>Материалов пока нет.</p>}
+        {plan.resources.length === 0 && <p className={styles.sectionEmpty}>Материалов пока нет.</p>}
         {plan.resources.length > 0 && <ul className={styles.list}>
           {plan.resources.map(resource => <li className={styles.row} key={resource.id}>
             <a href={resource.url} target="_blank" rel="noreferrer">{resource.title}</a>

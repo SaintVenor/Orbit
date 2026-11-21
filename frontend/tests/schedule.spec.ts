@@ -71,6 +71,7 @@ test('недельные пары сохраняются, не попадают 
   expect(creates).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
 
+  await page.getByRole('button', { name: 'Фильтры' }).click();
   await page.getByRole('combobox', { name: 'Тип' }).selectOption('deadline');
   await expect(count).toBeVisible();
   await expect(agenda.getByRole('heading', { name: 'Поездка в Карелию' })).toHaveCount(0);
@@ -155,4 +156,47 @@ test('сбой расписания оставляет доступным обы
   await page.getByRole('button', { name: 'Повторить', exact: true }).click();
   await expect(page.getByRole('heading', { name: lesson.subject })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Консультация' })).toBeVisible();
+});
+
+test('разовая пара сохраняет дату и тип, переключатель остаётся на месте', async ({ page, request }) => {
+  await page.setViewportSize({ width: 360, height: 844 });
+  await page.clock.install();
+  await page.goto('/calendar?date=2027-01-14&view=day');
+  await expect(page.getByRole('heading', { name: '14 января', exact: true })).toBeVisible();
+  const toggle = page.getByRole('switch', { name: 'Учебные пары' });
+  const before = await toggle.boundingBox();
+  await toggle.check();
+  expect(await toggle.boundingBox()).toEqual(before);
+  await page.getByRole('button', { name: 'Добавить пару' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Предмет').fill('Разовая физика');
+  await dialog.getByLabel('Аудитория').fill('101');
+  await dialog.getByLabel('Тип пары').selectOption('lab');
+  await dialog.getByLabel('Повторение пары').selectOption('once');
+  await dialog.getByLabel('Дата пары').fill('2027-01-15');
+  await dialog.getByLabel('Начало пары').fill('09:00');
+  await dialog.getByLabel('Конец пары').fill('10:30');
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({ path: 'evidence/flight-one-off-lesson.png' });
+  await dialog.getByRole('button', { name: 'Сохранить' }).click();
+  const lessonCard = page.getByRole('button', { name: /Лабораторная.*Разовая физика/ });
+  await expect(lessonCard).toBeVisible();
+  const savedNotice = page.getByRole('status').filter({ hasText: 'Пара сохранена.' });
+  await expect(savedNotice).toBeVisible();
+  await page.clock.fastForward(4000);
+  await expect(savedNotice).toHaveCount(0);
+  await expect(page.getByText('10:30', { exact: true })).toBeVisible();
+  const results = await request.get('/api/lessons?from=2027-01-15&to=2027-01-15');
+  const pair = (await results.json()).items.find((item: { subject: string }) => item.subject === 'Разовая физика');
+  try {
+    expect(pair).toMatchObject({ termStart: '2027-01-15', termEnd: '2027-01-15', lessonType: 'lab' });
+    await lessonCard.click();
+    await expect(dialog.getByLabel('Повторение пары')).toHaveValue('once');
+    await page.keyboard.press('Escape');
+    await page.goto('/calendar?date=2027-01-22&view=day');
+    await page.getByRole('switch', { name: 'Учебные пары' }).check();
+    await expect(page.getByRole('heading', { name: 'Свободный день' })).toBeVisible();
+    await expect(lessonCard).toHaveCount(0);
+  } finally {
+    await request.delete('/api/lessons/' + pair.id);
+  }
 });

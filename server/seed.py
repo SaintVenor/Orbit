@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from .db import connect, initialize
 
 
-def seed(anchor):
+def seed(anchor, flight_plan=False):
     initialize()
     prefix = f"demo-{anchor:%Y-%m}"
     # Keep the demo trip crossing the month boundary for every seed month.
@@ -45,6 +45,18 @@ def seed(anchor):
                 )
             ],
         )
+        if flight_plan:
+            db.execute(
+                """INSERT OR IGNORE INTO entries
+                   (id, kind, title, area, startDate, endDate, startTime, endTime)
+                   VALUES (?, 'event', 'Консультация по проекту', 'study', ?, ?, '10:00', '10:45')""",
+                (f"{prefix}-consultation", anchor.isoformat(), anchor.isoformat()),
+            )
+            db.executemany(
+                "UPDATE lessons SET lessonType = ? WHERE id = ? AND lessonType IS NULL",
+                [(kind, f"demo-lesson-{term_start:%Y-%m}-{suffix}") for suffix, kind in
+                 (("math", "lecture"), ("design", "practice"), ("english", "lab"))],
+            )
         db.executemany(
             """INSERT OR IGNORE INTO plans (id, title, area, note, motif)
                VALUES (?, ?, ?, ?, ?)""",
@@ -75,4 +87,6 @@ def seed(anchor):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", type=date.fromisoformat, default=date.today())
-    seed(parser.parse_args().date)
+    parser.add_argument("--flight-plan", action="store_true")
+    args = parser.parse_args()
+    seed(args.date, args.flight_plan)

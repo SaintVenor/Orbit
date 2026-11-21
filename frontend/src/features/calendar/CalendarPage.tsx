@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Button, NativeSelect, SegmentedControl, Switch } from '@mantine/core';
+import { ActionIcon, Alert, Button, NativeSelect, Portal, SegmentedControl, Switch } from '@mantine/core';
 import { addMonths, format, getISODay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -8,12 +8,14 @@ import { Header } from '../../app/Header';
 import { useDialog } from '../../app/useDialog';
 import { useLoad } from '../../app/useLoad';
 import { useMutation } from '../../app/useMutation';
-import { planApi } from '../plans/planApi';
+import { planApi, type AvailableStep } from '../plans/planApi';
+import { DayView } from './DayView';
 import { Agenda } from './Agenda';
 import { EntryDialog } from './EntryDialog';
 import { MonthGrid } from './MonthGrid';
 import { LessonDialog } from './LessonDialog';
 import { firstLessonDate, lessonApi, lessonsOn, type Lesson } from './lessons';
+import { WeekRibbon } from './WeekRibbon';
 import { WeekView } from './WeekView';
 import { StepPicker } from './StepPicker';
 import { asDate, birthdayInViewYear, dateKey, daysBetween, isDateKey, kindLabels, longDate, monthDays, monthKey, monthSummary, moveDay, shortDate } from './dates';
@@ -53,7 +55,12 @@ function useCalendar(from: string, to: string) {
 
 export function CalendarPage() {
   const [query, setQuery] = useSearchParams();
-  const today = dateKey(new Date());
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000 * 15);
+    return () => window.clearInterval(timer);
+  }, []);
+  const today = dateKey(now);
   const requestedDate = query.get('date');
   const requestedMonth = query.get('month');
   const monthDate = requestedMonth ? requestedMonth + '-01' : null;
@@ -63,6 +70,8 @@ export function CalendarPage() {
   const month = candidate?.days.includes(selected) && monthDate ? asDate(monthDate) : defaultMonth;
   const range = monthDays(month);
   const monthId = monthKey(month);
+  const daily = query.get('view') === 'day' || (!query.has('view') && !requestedDate && !requestedMonth);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const weekly = query.get('view') === 'week';
   const monday = moveDay(selected, 1 - getISODay(asDate(selected)));
   const week = Array.from({ length: 7 }, (_, index) => moveDay(monday, index));
@@ -75,7 +84,16 @@ export function CalendarPage() {
   const [area, setArea] = useState<Area | ''>('');
   const [kind, setKind] = useState<Kind | ''>('');
   const [dialog, setDialog] = useState<{ item?: CalendarItem } | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<{ message: string } | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  function notify(message: string) {
+    setNotice({ message });
+  }
   const dialogTrigger = useRef<HTMLElement | null>(null);
   const picker = useDialog<true>();
   const [showLessons, setShowLessons] = useState(false);
@@ -94,9 +112,10 @@ export function CalendarPage() {
   function go(day: string, view = day.slice(0, 7)) {
     const next = new URLSearchParams({ date: day });
     if (!day.startsWith(view)) next.set('month', view);
-    if (weekly) next.set('view', 'week');
+    if (daily) next.set('view', 'day');
+    else if (weekly) next.set('view', 'week');
     setQuery(next);
-    setNotice('');
+    setNotice(null);
     stepAction.clearError();
   }
 
@@ -110,7 +129,8 @@ export function CalendarPage() {
   }
 
   function shift(offset: number) {
-    if (weekly) go(moveDay(selected, offset * 7));
+    if (daily) go(moveDay(selected, offset));
+    else if (weekly) go(moveDay(selected, offset * 7));
     else go(monthKey(addMonths(month, offset)) + '-01');
   }
 
@@ -136,7 +156,7 @@ export function CalendarPage() {
       select(record.startDate);
     }
     if ((area && area !== record.area) || (kind && kind !== record.kind)) clearFilters();
-    setNotice('Запись сохранена.');
+    notify('Запись сохранена.');
     refresh();
   }
 
@@ -145,16 +165,33 @@ export function CalendarPage() {
     setDialog({ item });
   }
 
-  function assigned(stepArea: Area) {
+  const pendingStepFocus = useRef<{day: string; id: string} | null>(null);
+  useEffect(() => {
+    const target = pendingStepFocus.current;
+    if (!target) return;
+    if (target.day !== selected || !daily || failed) {
+      pendingStepFocus.current = null;
+      return;
+    }
+    if (loading) return;
+    const entry = document.getElementById('agenda-step-' + target.id);
+    if (entry) {
+      entry.focus();
+      pendingStepFocus.current = null;
+    }
+  }, [daily, selected, loading, failed, items]);
+
+  function assigned(step: AvailableStep) {
     picker.close();
-    if ((area && area !== stepArea) || (kind && kind !== 'step')) clearFilters();
-    setNotice('Шаг назначен.');
+    if ((area && area !== step.area) || (kind && kind !== 'step')) clearFilters();
+    if (daily) pendingStepFocus.current = {day: selected, id: step.id};
+    notify('Шаг «' + step.title + '» назначен на ' + longDate(selected) + '.');
     refresh();
   }
 
   function complete(item: CalendarItem) {
     void stepAction.submit(() => planApi.editStep(item.id, { done: true }), () => {
-      setNotice('Шаг выполнен.');
+      notify('Шаг выполнен.');
       refresh();
       requestAnimationFrame(() => document.getElementById('agenda-date')?.focus());
     });
@@ -169,7 +206,7 @@ export function CalendarPage() {
       const next = moveDay(first, steps * interval);
       select(next <= lesson.termEnd ? next : first);
     }
-    setNotice('Пара сохранена.');
+    notify('Пара сохранена.');
     refreshLessons();
   }
 
@@ -177,30 +214,35 @@ export function CalendarPage() {
   const calendarHref = '/calendar' + (query.size ? '?' + query.toString() : '');
 
   return <>
-    <Header onAdd={add} />
+    <Header onAdd={daily ? undefined : add} />
     <main className="shell content">
       <div className={styles.heading}>
         <div className={styles.controls}>
-          <ActionIcon variant="default" size="lg" aria-label={weekly ? 'Предыдущая неделя' : 'Предыдущий месяц'} onClick={() => shift(-1)}>‹</ActionIcon>
-          <ActionIcon variant="default" size="lg" aria-label={weekly ? 'Следующая неделя' : 'Следующий месяц'} onClick={() => shift(1)}>›</ActionIcon>
+          <ActionIcon variant="default" size="lg" aria-label={daily ? 'Предыдущий день' : weekly ? 'Предыдущая неделя' : 'Предыдущий месяц'} onClick={() => shift(-1)}>‹</ActionIcon>
+          <ActionIcon variant="default" size="lg" aria-label={daily ? 'Следующий день' : weekly ? 'Следующая неделя' : 'Следующий месяц'} onClick={() => shift(1)}>›</ActionIcon>
           <Button variant="default" onClick={() => go(today)}>Сегодня</Button>
         </div>
         <div className={styles.calendarTitle} data-week-title={weekly || undefined}>
-          <h1>{weekly ? weekTitle : format(month, 'LLLL', { locale: ru })} <span>{weekly ? weekYear : format(month, 'yyyy')}</span></h1>
-          <p className={styles.summary} aria-live="polite">{summary || (loading
+          {daily ? <h1 id="agenda-date" className={styles.dayTitle} tabIndex={-1}>{selected === today ? 'Сегодня' : longDate(selected)}</h1> : <h1>{weekly ? weekTitle : format(month, 'LLLL', { locale: ru })} <span>{weekly ? weekYear : format(month, 'yyyy')}</span></h1>}
+          <p className={styles.summary} aria-live="polite">{daily ? format(asDate(selected), 'EEEE, d MMMM yyyy', {locale: ru}) : summary || (loading
             ? 'Загрузка записей…' : failed ? '' : filtered ? 'Нет записей по выбранным фильтрам.'
               : weekly ? 'На этой неделе пока нет записей.' : 'В этом месяце пока нет записей.')}</p>
         </div>
-        <SegmentedControl aria-label="Вид календаря" value={weekly ? 'week' : 'month'}
-          data={[{ value: 'month', label: 'Месяц' }, { value: 'week', label: 'Неделя' }]}
+        <SegmentedControl aria-label="Вид календаря" value={daily ? 'day' : weekly ? 'week' : 'month'}
+          data={[{ value: 'day', label: 'День' }, { value: 'week', label: 'Неделя' }, { value: 'month', label: 'Месяц' }]}
           onChange={value => {
             const next = new URLSearchParams(query);
-            if (value === 'week') next.set('view', 'week');
-            else next.delete('view');
+            next.set('view', value);
+            next.set('date', selected);
             setQuery(next);
           }} />
       </div>
+      {daily && <WeekRibbon days={week} selected={selected} today={today} items={visible} lessons={lessons}
+        ready={!loading && !failed && !lessonsLoading && !lessonsFailed} onSelect={select} />}
       <div className={styles.filters}>
+        <Button className={styles.filterToggle} variant="default" aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen(!filtersOpen)}>Фильтры{filtered && ' (' + (Number(Boolean(area)) + Number(Boolean(kind))) + ')'}</Button>
+        <div className={styles.filterFields} data-open={filtersOpen || undefined}>
         <NativeSelect aria-label="Сфера" value={area}
           data={[{ value: '', label: 'Все сферы' }, { value: 'study', label: 'Учёба' }, { value: 'personal', label: 'Личное' }]}
           onChange={event => setArea(event.currentTarget.value as Area | '')} />
@@ -208,20 +250,29 @@ export function CalendarPage() {
           data={[{ value: '', label: 'Все типы' }, ...Object.entries(kindLabels).map(([value, label]) => ({ value, label }))]}
           onChange={event => setKind(event.currentTarget.value as Kind | '')} />
         {filtered && <Button variant="subtle" onClick={clearFilters}>Сбросить фильтры</Button>}
+        </div>
         <div className={styles.scheduleControls}>
           <Switch label="Учебные пары" checked={showLessons} onChange={event => setShowLessons(event.currentTarget.checked)} />
-          {showLessons && <Button variant="default" size="compact-md" onClick={() => lessonDialog.open('new')}>Добавить пару</Button>}
+          <div className={styles.lessonAction}>
+            {showLessons && <Button variant="default" size="compact-md" onClick={() => lessonDialog.open('new')}>Добавить пару</Button>}
+          </div>
         </div>
       </div>
       {lessonsFailed && <Alert color="red" role="alert" className={styles.alert}>
         Не удалось загрузить учебное расписание. <Button variant="subtle" size="compact-sm" onClick={refreshLessons}>Повторить</Button>
       </Alert>}
-      {notice && <Alert role="status" className={styles.alert}>{notice}</Alert>}
+      {notice && <Portal>
+        <div className={styles.toast} role="status">{notice.message}</div>
+      </Portal>}
       {stepAction.error && <Alert color="red" role="alert" className={styles.alert}>{stepAction.error.message}</Alert>}
       {failed && <Alert color="red" role="alert" className={styles.alert}>
         Не удалось загрузить календарь. <Button variant="subtle" size="compact-sm" onClick={refresh}>Повторить</Button>
       </Alert>}
-      <div className={styles.layout} data-week={weekly || undefined}>
+      {daily ? <DayView day={selected} today={today} now={now} items={visible} lessons={dayLessons}
+        loading={loading || lessonsLoading} failed={failed || lessonsFailed} filtered={filtered}
+        calendarHref={calendarHref} stepPending={stepAction.busy} onPick={() => picker.open(true)}
+        onAdd={add} onOpen={open} onLesson={lesson => lessonDialog.open(lesson)} onComplete={complete} />
+        : <div className={styles.layout} data-week={weekly || undefined}>
         {weekly ? <WeekView days={week} selected={selected} today={today} items={visible} lessons={lessons}
           onSelect={select} onOpen={open} onLesson={lesson => lessonDialog.open(lesson)} />
           : <MonthGrid days={range.days} month={monthId} today={today} selected={selected}
@@ -230,12 +281,12 @@ export function CalendarPage() {
           calendarHref={calendarHref} onAdd={add} onOpen={open} onPick={() => picker.open(true)}
           onComplete={complete} stepPending={stepAction.busy}
           lessons={dayLessons} lessonsLoading={lessonsLoading} onLessonOpen={lesson => lessonDialog.open(lesson)} />
-      </div>
+      </div>}
     </main>
     {lessonDialog.value && <LessonDialog day={selected} lesson={lessonDialog.value === 'new' ? undefined : lessonDialog.value}
       onClose={lessonDialog.close} onSaved={savedLesson} onRemoved={() => {
         lessonDialog.close();
-        setNotice('Пара удалена.');
+        notify('Пара удалена.');
         refreshLessons();
         requestAnimationFrame(() => document.getElementById('agenda-date')?.focus());
       }} />}
@@ -244,7 +295,7 @@ export function CalendarPage() {
       onSaved={saved} onDeleted={() => {
         dialogTrigger.current = document.getElementById('agenda-date');
         closeDialog();
-        setNotice('Запись удалена.');
+        notify('Запись удалена.');
         refresh();
       }} />}
   </>;

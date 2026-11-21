@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS lessons (
     termStart TEXT NOT NULL,
     termEnd TEXT NOT NULL CHECK (termEnd >= termStart),
     weekInterval INTEGER NOT NULL DEFAULT 1 CHECK (weekInterval IN (1, 2)),
-    firstDate TEXT
+    firstDate TEXT,
+    lessonType TEXT CHECK (lessonType IN ('lecture', 'practice', 'lab', 'consultation'))
 );
 
 CREATE INDEX IF NOT EXISTS lesson_term ON lessons (termStart, termEnd);

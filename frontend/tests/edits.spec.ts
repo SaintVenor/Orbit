@@ -86,6 +86,26 @@ test('недельный вид показывает пересечения и �
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await page.setViewportSize({ width: 360, height: 844 });
   await expect(week.getByRole('button', { name: /Онлайн-встреча/ })).toBeVisible();
+  const agenda = page.getByRole('complementary', { name: 'Повестка' });
+  await expect(agenda.getByRole('heading', { name: 'Онлайн-встреча' })).toHaveCount(0);
+  await week.getByRole('button', { name: /Онлайн-встреча/ }).click();
+  await expect(page.getByRole('dialog').getByLabel('Название')).toHaveValue('Онлайн-встреча');
+  await page.keyboard.press('Escape');
+
+  const plan = await add(request, '/plans', { id: 'mobile-week-plan', title: 'План на среду' });
+  try {
+    await add(request, '/plans/' + plan.id + '/steps', {
+      id: 'mobile-week-step', title: 'Подготовить вопросы', scheduledDate: day,
+    });
+    await page.reload();
+    await expect(week.getByRole('button', { name: /Подготовить вопросы/ })).toHaveCount(0);
+    await expect(agenda.getByRole('heading', { name: 'Подготовить вопросы' })).toBeVisible();
+    await agenda.getByRole('button', { name: 'Отметить выполненным' }).click();
+    await expect(agenda.getByText('Шаг плана · Выполнен')).toBeVisible();
+    await expect(agenda.getByRole('link', { name: 'План на среду' })).toHaveAttribute('href', '/plans/' + plan.id);
+  } finally {
+    await request.delete('/api/plans/' + plan.id);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
   await page.getByRole('button', { name: 'Следующая неделя' }).click();
   await expect(page).toHaveURL(/date=2027-02-17.*view=week/);
