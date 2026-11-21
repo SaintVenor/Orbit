@@ -1,0 +1,712 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Дизайн-разбор Орбиты</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700&family=PT+Serif:wght@400;700&display=swap">
+<style>
+/* Layout: одна колонка чтения 1120px; макеты направлений — самостоятельные "доски" со своими токенами и переключателем темы */
+:root{
+  --bg:#F1F3F6; --surface:#FFFFFF; --ink:#14181F; --muted:#566070; --line:#D3D8E0;
+  --accent:#2352C8; --accent-soft:#E4EBFB; --warn:#A63A12; --ok:#176B3A;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1014; --surface:#161A21; --ink:#E8EBF0; --muted:#9BA5B4; --line:#272D37;
+    --accent:#8CABFF; --accent-soft:#1B2540; --warn:#FF9A73; --ok:#6FD59A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1014; --surface:#161A21; --ink:#E8EBF0; --muted:#9BA5B4; --line:#272D37;
+  --accent:#8CABFF; --accent-soft:#1B2540; --warn:#FF9A73; --ok:#6FD59A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--font);
+  padding-block:0 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin-inline:auto}
+h1,h2,h3,h4,h5{text-wrap:balance}
+a{color:var(--accent)}
+code{font:500 .86em var(--mono);background:var(--accent-soft);padding:.1em .35em;border-radius:4px;overflow-wrap:anywhere}
+.top{padding-block:48px 8px}
+.kicker{font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+h1{font:700 clamp(32px,5vw,52px)/1.08 var(--font);letter-spacing:-.025em;margin:0 0 18px;max-width:26ch}
+.lead{font-size:18px;max-width:68ch;margin:0 0 12px}
+h2{font:650 clamp(24px,3.2vw,32px)/1.2 var(--font);letter-spacing:-.015em;margin:64px 0 10px}
+h2 + .sub{color:var(--muted);max-width:70ch;margin:0 0 24px}
+h3{font:650 19px/1.3 var(--font);margin:0 0 8px}
+p{margin:0 0 12px;max-width:72ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.grid2{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid3{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:11px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{font:600 12px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bad{color:var(--warn);font-weight:600}.good{color:var(--ok);font-weight:600}
+.note{font-size:14px;color:var(--muted)}
+ul.tight{margin:0;padding-left:1.1em}ul.tight li{margin:0 0 6px;max-width:68ch}
+.tag{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);vertical-align:1px}
+.finding{display:grid;gap:6px}
+.finding h3{margin:0}
+.finding .ev{font:400 13.5px/1.5 var(--mono);color:var(--muted);margin:0}
+.verdict{border-left:3px solid var(--accent);padding-left:12px;margin:8px 0 0;font-weight:500}
+
+/* ---------- доски направлений ---------- */
+.board{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin:20px 0 8px}
+.board-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.board-bar h3{margin:0;font-size:18px}
+.board-bar p{margin:0;color:var(--muted);font-size:14px;max-width:60ch}
+.modes{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.modes button{font:500 13px var(--font);padding:8px 14px;min-height:40px;background:transparent;color:var(--ink);border:0;cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.modes button:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.stage{display:grid;gap:20px;padding:22px;grid-template-columns:minmax(0,430px) minmax(0,1fr);align-items:start}
+.stage .head{grid-column:1/-1}
+.col{display:grid;gap:16px;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px 22px 16px;font-size:13px;border-top:1px solid var(--line)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.ic{width:15px;height:15px;flex:none}
+.mocklabel{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;opacity:.75}
+
+/* ====== Направление A «Дневник» ====== */
+.a{--p:#F6F7F4;--c:#FFFFFF;--i:#14213D;--m:#4B5670;--h:#C5CBD8;--mk:#FFE45C;--mki:#14213D;--rd:#B3202F;--ck:#FFFFFF;
+   background:var(--p);color:var(--i);font-family:'Inter',sans-serif}
+.a[data-mode="dark"]{--p:#0E1424;--c:#151C30;--i:#EEF1FA;--m:#A9B2C9;--h:#3A4566;--mk:#FFE45C;--mki:#14213D;--rd:#FF8F98;--ck:#0E1424}
+.a .serif{font-family:'PT Serif',Georgia,serif}
+.a .eyebrow{font:600 12px/1 'Inter',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--m);margin:0}
+.a .panel{background:var(--c);border:1px solid var(--h);border-radius:6px}
+.a-head{padding:20px 24px 4px}
+.a-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.a-seg{display:inline-flex;border:1.5px solid var(--i);border-radius:5px;overflow:hidden}
+.a-seg span{font:600 13px 'Inter',system-ui,sans-serif;padding:8px 14px;min-height:38px;display:inline-flex;align-items:center}
+.a-seg span[data-on]{background:var(--i);color:var(--p)}
+.a-title{font:400 clamp(34px,5vw,54px)/1.05 'PT Serif',Georgia,serif;margin:10px 0 14px;letter-spacing:-.02em}
+.a-title small{font:500 16px 'Inter',system-ui,sans-serif;color:var(--m);margin-left:10px;letter-spacing:0}
+.a-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.a-nav .nb{border:1.5px solid var(--i);border-radius:5px;min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;font:600 18px 'Inter',system-ui,sans-serif;padding:0 12px}
+.a-nav .sum{margin:0 0 0 8px;font-size:15px;color:var(--m)}
+.a-nav .sum b{color:var(--i);font-weight:600}
+.a-strip{list-style:none;margin:0 -24px;padding:0 24px 20px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}
+.a-strip li{border-top:2px solid var(--i);padding:10px 8px 10px;display:grid;gap:3px;align-content:start;min-height:112px;border-left:1px solid var(--h)}
+.a-strip li:first-child{border-left:0}
+.a-strip .wd{font:600 11.5px 'Inter',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--m)}
+.a-strip b{font:400 30px/1 'PT Serif',Georgia,serif}
+.a-strip .ln{display:flex;gap:5px;align-items:center;font-size:12.5px;line-height:1.3}
+.a-strip .ln .ic{width:13px;height:13px}
+.a-strip .clash{color:var(--rd);font-weight:600}
+.a-strip li.today{background:var(--mk);color:var(--mki);border-top-color:var(--mki)}
+.a-strip li.today .wd{color:var(--mki)}
+.a-strip li.today .tg{font:700 10.5px 'Inter',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.a-strip li.today .clash{color:#8C1220}
+.a-day{padding:0 0 18px;overflow:hidden}
+.a-dayhead{padding:18px 20px 12px;border-bottom:2px solid var(--i)}
+.a-dayhead h4{font:400 36px/1.05 'PT Serif',Georgia,serif;margin:8px 0 0;letter-spacing:-.02em}
+.a-list{list-style:none;margin:0;padding:0 20px}
+.a-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--h)}
+.a-row .t{font:400 19px/1.2 'PT Serif',Georgia,serif;font-variant-numeric:tabular-nums}
+.a-row h5{font:600 16.5px/1.3 'Inter',system-ui,sans-serif;margin:0 0 3px;overflow-wrap:anywhere}
+.a-row .meta{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:14px;color:var(--m)}
+.a-room{display:inline-flex;align-items:baseline;gap:5px;border:1.5px solid var(--i);border-radius:4px;padding:1px 7px;color:var(--i);font-weight:500}
+.a-room b{font:700 17px 'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.a-room small{font-size:12px;color:var(--m)}
+.a-row.next{background:var(--mk);color:var(--mki);margin:0 -20px;padding-inline:20px;border-bottom-color:var(--mki)}
+.a-row.next .t,.a-row.next .meta,.a-row.next .a-room small{color:var(--mki)}
+.a-row.next .a-room{border-color:var(--mki);color:var(--mki)}
+.a-flag{font:700 11px 'Inter',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:4px}
+.a-clash{position:relative;margin-left:-20px;padding-left:17px;border-left:3px solid var(--rd)}
+.a-clash .a-row.next{margin-left:-17px;margin-right:-20px;padding-left:17px}
+.a-clash .a-cap{display:flex;gap:6px;align-items:center;color:var(--rd);font:600 13px 'Inter',system-ui,sans-serif;padding:8px 0 0 0}
+.a-row.deadline{border-bottom-style:dashed;border-bottom-color:var(--i)}
+.a-row.deadline .kind{color:var(--rd);font-weight:600}
+.a-actions{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px 0}
+.a-btn{font:600 14px 'Inter',system-ui,sans-serif;min-height:44px;padding:0 16px;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--i);border-radius:5px;background:transparent;color:var(--i)}
+.a-btn.pri{background:var(--i);color:var(--p)}
+.a-plan{padding:0;overflow:hidden;position:relative}
+.a-plan.focus{outline:3px solid var(--i);outline-offset:3px}
+.a-cover{height:58px;border-bottom:1.5px solid var(--i);background:var(--p)}
+.a-cover svg{display:block;width:100%;height:100%}
+.a-plan .body{padding:16px 18px 18px;display:grid;gap:10px}
+.a-plan h4{font:400 26px/1.15 'PT Serif',Georgia,serif;margin:0;letter-spacing:-.015em}
+.a-boxes{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--m)}
+.a-boxes i{width:20px;height:20px;border:1.5px solid var(--i);border-radius:3px;display:inline-flex;align-items:center;justify-content:center}
+.a-boxes i.on{background:var(--i);color:var(--ck)}
+.a-boxes i svg{width:13px;height:13px}
+.a-boxes b{color:var(--i);margin-left:6px;font-weight:600}
+.a-steps{list-style:none;margin:0;padding:0;display:grid}
+.a-steps li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--h);font-size:15px}
+.a-steps li .ic{margin-top:3px}
+.a-steps li.done span{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--m)}
+.a-steps li.nx{background:var(--mk);color:var(--mki);margin-inline:-18px;padding-inline:18px;font-weight:600}
+.a-steps .when{margin-left:auto;font-size:12.5px;white-space:nowrap;font-weight:500}
+.a-link{font-size:13.5px;color:var(--m);display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.a-slot{border:1.5px dashed var(--i);border-radius:5px;padding:12px;display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px;min-height:48px}
+
+/* ====== Направление B «Полётное задание» ====== */
+.b{--s:#10141A;--p:#FFFFFF;--i:#10141A;--m:#505B68;--h:#C3CAD2;--sig:#FF5A1F;--sigi:#10141A;--cb:#1D4ED8;--ls:#DDE3EA;--dl:#10141A;--dli:#FFFFFF;
+   --sheet:#E8EBEE;background:var(--sheet);color:var(--i);font-family:'IBM Plex Sans','Inter',sans-serif}
+.b[data-mode="dark"]{--p:#13171C;--i:#E9ECEF;--m:#9BA6B2;--h:#2C343D;--sig:#FFB020;--sigi:#10141A;--cb:#86A8FF;--ls:#1F2630;--dl:#E9ECEF;--dli:#10141A;--sheet:#0A0C0F}
+.b .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em}
+.b .cond{font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif}
+.b .panel{background:var(--p);border:1.5px solid var(--i)}
+.b-head{padding:16px 20px 0}
+.b-row1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.b-btn{font:600 12.5px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;border:1.5px solid var(--i);min-height:40px;min-width:40px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center}
+.b-btn[data-on]{background:var(--i);color:var(--p)}
+.b-row1 .sp{margin-left:auto;display:flex}
+.b-row1 .sp .b-btn + .b-btn{border-left:0}
+.b-par{font:500 12.5px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--m);margin-left:6px}
+.b-title{font:700 clamp(40px,6.2vw,68px)/.98 'IBM Plex Sans Condensed',sans-serif;text-transform:uppercase;letter-spacing:-.005em;margin:14px 0 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.b-title small{font:500 15px 'IBM Plex Mono',ui-monospace,monospace;color:var(--m);letter-spacing:.04em}
+.b-sum{font:500 13px 'IBM Plex Mono',ui-monospace,monospace;color:var(--m);text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px}
+.b-sum b{color:var(--i);font-weight:600}
+.b-strip{list-style:none;margin:0 -20px;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1.5px solid var(--i)}
+.b-strip li{position:relative;padding:12px 10px 12px;border-left:1px solid var(--h);display:grid;gap:5px;align-content:start;min-height:122px}
+.b-strip li:first-child{border-left:0}
+.b-strip .wd{font:500 11.5px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--m)}
+.b-strip b{font:700 32px/1 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;}
+.b-strip .load{height:8px;background:var(--ls);position:relative;margin:3px 0}
+.b-strip .load i{position:absolute;top:0;bottom:0;background:var(--i)}
+.b-strip .load i.dl{width:3px;background:var(--cb)}
+.b-strip .ln{font:500 11.5px/1.3 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;text-transform:uppercase;display:flex;gap:5px;align-items:center}
+.b-strip .ln .ic{width:12px;height:12px}
+.b-strip li.today{background:color-mix(in srgb,var(--sig) 14%,var(--p))}
+.b-strip li.today::before{content:"";position:absolute;left:0;right:0;top:-1.5px;height:5px;background:var(--sig)}
+.b-strip .stamp{font:600 10.5px 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.08em;background:var(--sig);color:var(--sigi);padding:2px 5px;justify-self:start}
+.b-strip .now{position:absolute;top:-4px;left:calc(var(--n) - 6px);width:12px;height:12px;background:var(--sig);border:2px solid var(--i);border-radius:50%}
+.b-strip .clash{display:flex;gap:5px;align-items:center;font:600 11px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase}
+.b-day{padding:0 0 16px}
+.b-dayhead{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 16px 12px;border-bottom:1.5px solid var(--i)}
+.b-dayhead .mono{font-size:12px;color:var(--m);margin:0}
+.b-dayhead h4{font:700 34px/1 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;text-transform:uppercase;margin:6px 0 0}
+.b-clock{font:500 22px 'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.b-next{margin:14px 16px 0;background:var(--sig);color:var(--sigi);padding:12px 14px;display:grid;gap:4px}
+.b-next .mono{font-size:12px;font-weight:600}
+.b-next h5{font:600 21px/1.15 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;margin:0;overflow-wrap:anywhere}
+.b-next .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.b-room{display:inline-flex;align-items:baseline;gap:6px;border:2px solid var(--sigi);padding:0 8px}
+.b-room small{font:600 11px 'IBM Plex Mono',ui-monospace,monospace}
+.b-room b{font:600 28px/1.15 'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.b-tl{padding:14px 16px 0;display:grid;gap:0}
+.b-cl{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px}
+.b-ticks{position:relative;font:500 11.5px 'IBM Plex Mono',ui-monospace,monospace;color:var(--m);font-variant-numeric:tabular-nums}
+.b-ticks span{position:absolute;left:0;transform:translateY(-1px)}
+.b-area{position:relative;border-top:1px solid var(--h)}
+.b-blk{position:absolute;z-index:1;padding:6px 8px;overflow:hidden;font-size:13.5px;line-height:1.25}
+.b-blk h5{font:600 15px/1.2 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;margin:0 0 2px;overflow-wrap:anywhere}
+.b-blk .mono{font-size:11.5px;color:inherit}
+.b-blk.lesson{background:var(--ls);border-left:4px solid var(--i)}
+.b-blk.event{background:var(--p);border:1.5px solid var(--cb);color:var(--i)}
+.b-blk.event .mono{color:var(--cb)}
+.b-blk .rm{font:600 12.5px 'IBM Plex Mono',ui-monospace,monospace;border:1.5px solid var(--i);padding:0 5px;display:inline-block;margin-top:3px}
+.b-blk.nx{outline:3px solid var(--sig);outline-offset:-1px}
+.b-hatch{position:absolute;left:0;right:0;z-index:2;background:repeating-linear-gradient(135deg,var(--sig) 0 2px,transparent 2px 7px);opacity:.42;pointer-events:none}
+.b-gap{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;min-height:30px}
+.b-gap div{border-top:1.5px dashed var(--m);position:relative;height:0}
+.b-gap div span{position:absolute;top:-9px;left:0;background:var(--sheet);padding-right:8px;font:500 11px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;color:var(--m)}
+.b .panel .b-gap div span{background:var(--p)}
+.b-cap{font:600 11.5px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;display:flex;gap:6px;align-items:center;margin:6px 0 0 58px;color:var(--i)}
+.b-cap .ic{color:var(--i)}
+.b-dl{background:var(--dl);color:var(--dli);padding:8px 10px;display:flex;gap:10px;align-items:center}
+.b-dl h5{font:600 15px/1.2 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;margin:0}
+.b-dl .mono{font-size:11.5px}
+.b-actions{display:flex;flex-wrap:wrap;gap:8px;padding:16px 16px 0}
+.b-act{font:600 12.5px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.03em;min-height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--i);color:var(--i)}
+.b-act.pri{background:var(--i);color:var(--p)}
+.b-plan{padding:16px;display:grid;gap:12px;position:relative}
+.b-plan.focus{outline:3px solid var(--sig);outline-offset:3px}
+.b-ptop{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:center}
+.b-ptop svg{width:64px;height:64px;color:var(--i)}
+.b-ptop .mono{font-size:11.5px;color:var(--m);margin:0 0 3px}
+.b-ptop h4{font:700 24px/1.08 'IBM Plex Sans Condensed',"Arial Narrow",sans-serif;margin:0;overflow-wrap:anywhere}
+.b-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.b-seg i{height:10px;border:1.5px solid var(--i)}
+.b-seg i.on{background:var(--i)}
+.b-segcap{display:flex;justify-content:space-between;font:500 11.5px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase;color:var(--m);margin-top:-4px}
+.b-steps{list-style:none;margin:0;padding:0;display:grid;gap:0;border-top:1px solid var(--h)}
+.b-steps li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--h);font-size:15px}
+.b-steps li .ic{margin-top:3px}
+.b-steps li.done span:not(.mono){text-decoration:line-through;color:var(--m)}
+.b-steps li.nx{background:color-mix(in srgb,var(--sig) 22%,var(--p));margin-inline:-16px;padding-inline:16px;border-bottom-color:var(--i);font-weight:600}
+.b-steps .mono{margin-left:auto;font-size:11.5px;white-space:nowrap;color:var(--m)}
+.b-steps li.nx .mono{color:var(--i)}
+.b-steps .stamp{font:600 10.5px 'IBM Plex Mono',ui-monospace,monospace;background:var(--sig);color:var(--sigi);padding:2px 5px;letter-spacing:.06em;margin-left:0}
+.b-slot{border:1.5px dashed var(--i);min-height:48px;display:flex;align-items:center;gap:10px;padding:0 12px;font:600 12.5px 'IBM Plex Mono',ui-monospace,monospace;text-transform:uppercase}
+
+/* ---------- таблицы, изменения ---------- */
+.chg{display:grid;gap:0;padding:0;overflow:hidden;margin:0 0 18px}
+.chg > header{display:flex;gap:14px;align-items:baseline;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chg .n{font:600 13px var(--mono);background:var(--ink);color:var(--bg);border-radius:4px;padding:3px 8px}
+.chg h3{margin:0;font-size:20px}
+.chg dl{margin:0;display:grid;grid-template-columns:150px minmax(0,1fr)}
+.chg dt{font:600 12px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 8px 12px 20px;border-bottom:1px solid var(--line)}
+.chg dd{margin:0;padding:12px 20px 12px 0;border-bottom:1px solid var(--line);max-width:none}
+.chg dt:nth-last-of-type(1),.chg dd:last-of-type{border-bottom:0}
+.chg dd p{margin:0 0 8px;max-width:76ch}.chg dd p:last-child{margin:0}
+.chg dd ul{margin:0;padding-left:1.1em}.chg dd li{margin:0 0 5px;max-width:76ch}
+.split{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.split h3{margin-bottom:10px}
+.pick{border:2px solid var(--accent);border-radius:12px;padding:20px;background:var(--surface)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:860px){
+  .grid2,.grid3,.split{grid-template-columns:minmax(0,1fr)}
+  .stage{grid-template-columns:minmax(0,1fr);padding:14px}
+  .chg dl{grid-template-columns:minmax(0,1fr)}
+  .chg dt{padding:12px 20px 0;border-bottom:0}
+  .chg dd{padding:4px 20px 12px}
+  .a-head{padding:16px 16px 0}
+  .a-strip{margin:0 -16px;padding:0 16px 16px}
+  .a-strip li{padding:8px 4px;min-height:92px}
+  .a-strip b{font-size:22px}
+  .a-strip .t,.a-strip .tgfull{display:none}
+  .a-strip .ln{font-size:11.5px}
+  .b-head{padding:14px 14px 0}
+  .b-strip{margin:0 -14px}
+  .b-strip li{padding:10px 4px;min-height:108px}
+  .b-strip b{font-size:24px}
+  .b-strip .t{display:none}
+  .b-strip .ln{font-size:10.5px}
+  .b-strip .stamp{font-size:9px;padding:2px 3px}
+  .b-strip .clash span{display:none}
+}
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-lesson" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-event" viewBox="0 0 16 16"><path d="M8 1.8 14.2 8 8 14.2 1.8 8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 16 16"><path d="M3.5 14V2.5M3.5 3h8.5l-2 3 2 3H3.5" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-step" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.3" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-done" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="currentColor"/><path d="M5.2 8.2 7.2 10.2 11 6" fill="none" style="stroke:var(--ck,#fff)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 16 16"><path d="M8 1.5 9.6 6.4 14.5 8 9.6 9.6 8 14.5 6.4 9.6 1.5 8 6.4 6.4Z" fill="currentColor"/></symbol>
+  <symbol id="i-clash" viewBox="0 0 16 16"><rect x="1.8" y="2.5" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="6.2" y="5.5" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.5 8.4 6.6 11.5 12.5 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">Орбита · независимый дизайн-разбор · данные макета: 20 ноября 2026</p>
+  <h1>Орбита: как сделать планировщик узнаваемым и быстрым по утрам</h1>
+  <p class="lead">Главная проблема не в палитре. Утром студент не видит «что дальше и где» без включения слоя пар, наложения почти не заметны, а типы записей на телефоне различаются только цветом. Предлагается направление «Полётное задание»: время становится осью, орбита превращается из иллюстрации в данные.</p>
+  <p class="note">Смотрел 10 снимков из <code>evidence/</code>, открыл <code>design/prototype.html</code> в Chromium (1440×900 и 390×844, все состояния) и сверил с <code>frontend/src</code>. Приложение не запускал. Снимков плана из рабочей версии в подборке нет, поэтому детали плана оценены по <code>PlanDetailPage.tsx</code> и снимкам макета. Кадров с наложением событий нет, вывод о нём сделан по коду.</p>
+</header>
+
+<section>
+  <h2>Глазами студента</h2>
+  <p class="sub">Семь вопросов из брифа. У каждого указано, на чём основан ответ.</p>
+  <div class="grid2">
+    <article class="card finding">
+      <h3>Утром найти следующую пару и аудиторию</h3>
+      <p>Нужно сначала включить «Учебные пары». Слой выключен при каждой загрузке. В месяце пара выглядит как плашка «3 пары», названия и аудитории только в повестке дня. В повестке пары идут отдельным блоком после записей, а не по времени. Аудитория набрана тем же 14px, что и время, зато самая заметная кнопка в карточке пары — «Редактировать пару». Отметки «сейчас» и «дальше» нет.</p>
+      <p class="ev">CalendarPage.tsx:81 · Agenda.tsx:57–65 · README «Учебные пары» · schedule-desktop.png</p>
+      <p class="verdict">Найти можно за два клика и сканирование. С одного взгляда нельзя.</p>
+    </article>
+    <article class="card finding">
+      <h3>Заметить наложение двух событий</h3>
+      <p>Только в недельном виде и очень слабо: подпись «Пересечение» 11px, жирная, подчёркнутая, то есть выглядит как ссылка. Строки недели строятся по уникальным временам начала, поэтому 09:50–11:20 и 10:30–11:00 окажутся в разных строках и не будут выглядеть наложенными. В месяце и в повестке наложения не отмечаются вообще.</p>
+      <p class="ev">WeekView.tsx:27–30, 51, 76 · week.module.css:16 · на снимках наложений нет</p>
+      <p class="verdict">Заметит тот, кто уже ищет конфликт.</p>
+    </article>
+    <article class="card finding">
+      <h3>Выбрать шаг для свободного дня и увидеть результат</h3>
+      <p>Кнопка «Выбрать шаг из планов» серая на сером (контраст плашки 1.17:1) и читается как неактивная, хотя это главный вход сценария. Диалог хорош: шаги сгруппированы по плану, в заголовке дата. Но после выбора остаётся только «Шаг назначен.», фокус на новую запись не переносится, ссылки на план нет. В месяце на телефоне шаг виден тонкой цветной чертой без подписи.</p>
+      <p class="ev">calendar-desktop.png · StepPicker.tsx · CalendarPage.tsx:148–153</p>
+      <p class="verdict">Путь рабочий, финал теряется.</p>
+    </article>
+    <article class="card finding">
+      <h3>Что теряется на телефоне</h3>
+      <p>Шапка, два списка фильтров и переключатель занимают первые ≈330px. Повестка начинается около y=706 из 844, запись дня на границе экрана. Типы записей в месяце показаны чёрточками 5px трёх цветов без подписи; выполненный и невыполненный шаг неразличимы. В неделе на телефоне пары показаны дважды: в сетке и в повестке.</p>
+      <p class="ev">calendar-mobile.png · week-dark-mobile.png · calendar.module.css:166–175</p>
+    </article>
+    <article class="card finding">
+      <h3>Длинные русские названия</h3>
+      <p>В месяце плашки обрезаются: «Лабораторная …», «День рожден…», на телефоне подписей нет вовсе. В неделе название переносится до 4 строк («Объектно-ориентированное проектирование»), аудитория остаётся видимой. В повестке и карточках планов названия переносятся нормально. Для планшета 780–1000px это риск: колонка около 80px при <code>overflow-wrap:anywhere</code> режет слова посреди (расчёт, не проверено).</p>
+      <p class="ev">calendar-desktop.png · week-dark-desktop.png · week.module.css:14</p>
+    </article>
+    <article class="card finding">
+      <h3>Тёмная тема</h3>
+      <p>Текст держится хорошо (7.2–9.1:1). Слабые места другие. Салатовый <code>#def09f</code> зашит в обеих темах, поэтому в тёмной повестка превращается в самый яркий блок страницы. Заливки дедлайна и пары обе коричневые (разница ≈12 ΔE). Плашки отличаются от фона на 1.4–1.8:1, различие держится только на цвете текста.</p>
+      <p class="ev">calendar.module.css:131 · week.module.css:10 · theme.ts:27–36</p>
+    </article>
+    <article class="card finding" style="grid-column:1/-1">
+      <h3>Клавиатура и фокус</h3>
+      <p>Месяц сделан правильно: одна Tab-остановка на сетку, стрелки, Enter. В неделе каждый блок записи — отдельная Tab-остановка, до двух десятков перед повесткой. Кольцо фокуса глобальное: 2px, смещение 3px. У карточки плана оно рисуется вокруг ссылки-заголовка, а карточка целиком получает только смену цвета рамки в 1px (<code>.card:focus-within</code>); это нужно проверить в браузере. Перетаскивание шагов работает только мышью, но кнопки ↑ ↓ есть. Чёрточки мобильного месяца и переключатели строятся на фоне, поэтому в режиме forced-colors они пропадут (по спецификации, не проверялось).</p>
+      <p class="ev">WeekView.tsx:73 · styles.css:4–7 · plans.module.css:71–74 · PlanDetailPage.tsx:115–121</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <h2>Контраст: где проблема на самом деле</h2>
+  <p class="sub">Рассчитано по токенам из <code>theme.ts</code> и по пикселям снимков. Текст проходит с запасом. Не проходят границы интерактивных элементов (нужно 3:1) и признаки состояния.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Пара</th><th>Контраст</th><th>Оценка</th></tr></thead>
+    <tbody>
+      <tr><td>Основной текст на карточке (светлая)</td><td class="num">15.3:1</td><td class="good">ок</td></tr>
+      <tr><td>Вторичный текст на фоне страницы</td><td class="num">5.6:1</td><td class="good">ок</td></tr>
+      <tr><td>Тексты типов на своих заливках (светлая)</td><td class="num">6.2–8.8:1</td><td class="good">ок</td></tr>
+      <tr><td>Тексты типов на своих заливках (тёмная)</td><td class="num">7.2–9.1:1</td><td class="good">ок</td></tr>
+      <tr><td>Переключатель «Учебные пары», выключен, к фону</td><td class="num">1.16:1</td><td class="bad">граница контрола ≪ 3:1</td></tr>
+      <tr><td>Кнопка «Выбрать шаг из планов» к плашке повестки</td><td class="num">1.17:1</td><td class="bad">выглядит отключённой</td></tr>
+      <tr><td>Трек индикатора прогресса к карточке</td><td class="num">1.53:1</td><td class="bad">пустой прогресс не виден</td></tr>
+      <tr><td>Линии сетки и рамки карточек</td><td class="num">1.4–1.6:1</td><td>декор, допустимо; не годится для границ контролов</td></tr>
+      <tr><td>Заливка плашки события к ячейке (светлая / тёмная пара)</td><td class="num">1.19:1 / 1.42:1</td><td class="bad">плашка опознаётся по цвету текста</td></tr>
+      <tr><td>Метки типов (чёрточки на телефоне) к карточке</td><td class="num">4.7–5.5:1</td><td>контраст достаточный, но тип различается только цветом</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:12px">Состояния, различимые только цветом: тип записи в мобильном месяце; «сегодня» в неделе (подчёркнутая цифра, при этом выбранный день залит салатовым); выполненный и невыполненный шаг в месяце на телефоне; «пара» и «дедлайн» в тёмной теме; выключенный переключатель.</p>
+</section>
+
+<section>
+  <h2>Удобство и вкус</h2>
+  <p class="sub">Первое можно проверить измерением. Второе обсуждается, и решает его владелец продукта.</p>
+  <div class="split">
+    <div class="card">
+      <h3>Проблемы удобства</h3>
+      <ul class="tight">
+        <li>Слой пар сбрасывается при загрузке; пары не вперемешку по времени; аудитория вторична.</li>
+        <li>Наложение: мелкий подчёркнутый текст, нет в месяце и в повестке; строки недели не отражают длительность.</li>
+        <li>Тип и «выполнено» на телефоне передаются цветом.</li>
+        <li>Границы контролов и пустой прогресс ниже 3:1.</li>
+        <li>В неделе ≈20 Tab-остановок до повестки.</li>
+        <li>Шапка 194px на 1440×900: последний ряд месяца уходит за экран (сетка заканчивается на y=988).</li>
+        <li>В заголовке повестки нет дня недели («28 ноября», день недели только в aria-label).</li>
+        <li>У пустого плана «0 из 0» с полосой; «Добавить первый шаг» выглядит как шаг.</li>
+        <li>Салатовая заливка в тёмной теме.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Вкусовые предпочтения</h3>
+      <ul class="tight">
+        <li>Сливовый плюс салатовый как пара цветов.</li>
+        <li>Орбитальная иллюстрация в шапке (она декоративна, но это узнаваемость).</li>
+        <li>Антиква PT Serif для чисел и заголовков против гротеска.</li>
+        <li>Три градиентные обложки: нравятся или нет.</li>
+        <li>Радиусы 4/16px, плотность отступов.</li>
+        <li>Общее ощущение «как у всех»: это пожелание пользователя, и оно решается направлением, а не правкой токенов.</li>
+      </ul>
+      <p class="note" style="margin-top:10px">Что оставить: стрелки месяца слева, одна Tab-остановка на месяц, карточка плана целиком кликабельна, группировка шагов в диалоге, один день вместо семи колонок на телефоне, склонения в сводке.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Два направления</h2>
+  <p class="sub">Оба используют те же данные, что рабочая версия (неделя 16–22 ноября, пятница 20 ноября, 09:12). Событие «Консультация по лабораторной» добавлено в макет как пример наложения, в сидах его нет. Номер недели и чётность посчитаны по шаблону осеннего семестра из приложения (с 1 сентября). Переключатель справа меняет тему доски.</p>
+
+  <!-- ================= A ================= -->
+  <div class="board a" data-board data-mode="light" id="dirA" aria-label="Макет направления А «Дневник»">
+    <div class="board-bar" style="background:var(--surface);color:var(--ink)">
+      <div><h3>А · «Дневник»</h3><p>Синие чернила, жёлтый маркер, красная ручка. Развитие нынешнего образа: бумага и антиква, но без шапки-иллюстрации. Типы различаются линией и знаком.</p></div>
+      <div class="modes" role="group" aria-label="Тема макета А"><button type="button" aria-pressed="true" data-set="light">Светлая</button><button type="button" aria-pressed="false" data-set="dark">Ночная</button></div>
+    </div>
+    <div class="stage">
+      <div class="head">
+        <p class="mocklabel">Заголовок недели</p>
+        <div class="panel a-head">
+          <div class="a-top"><p class="eyebrow">Неделя 12 · чётная</p><div class="a-seg"><span>Месяц</span><span data-on>Неделя</span></div></div>
+          <h4 class="a-title">16–22 ноября<small>2026</small></h4>
+          <div class="a-nav"><span class="nb">‹</span><span class="nb">›</span><span class="nb" style="font-size:14px">Сегодня</span>
+            <p class="sum"><b>16 пар</b> · 1 дедлайн · 1 событие · 1 шаг</p></div>
+          <ol class="a-strip">
+            <li><span class="wd">Пн</span><b>16</b><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span></li>
+            <li><span class="wd">Вт</span><b>17</b><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>4<span class="t"> пары</span></span></li>
+            <li><span class="wd">Ср</span><b>18</b><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>3<span class="t"> пары</span></span></li>
+            <li><span class="wd">Чт</span><b>19</b><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span></li>
+            <li class="today"><span class="wd">Пт</span><b>20</b><span class="tg">сегодня</span>
+              <span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span>
+              <span class="ln"><svg class="ic"><use href="#i-flag"/></svg>18:00</span>
+              <span class="ln clash"><svg class="ic"><use href="#i-clash"/></svg><span class="t">наложение</span></span></li>
+            <li><span class="wd">Сб</span><b>21</b><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>3<span class="t"> пары</span></span><span class="ln"><svg class="ic"><use href="#i-step"/></svg>1<span class="t"> шаг</span></span></li>
+            <li><span class="wd">Вс</span><b>22</b><span class="ln" style="color:var(--m)">нет записей</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="col">
+        <p class="mocklabel">Выбранный день · ширина телефона</p>
+        <article class="panel a-day">
+          <header class="a-dayhead"><p class="eyebrow">Пятница · сегодня, 09:12</p><h4>20 ноября</h4></header>
+          <ol class="a-list">
+            <li class="a-clash" style="list-style:none">
+              <div class="a-row next"><span class="t">09:50</span><div><span class="a-flag">Дальше · через 38 мин</span><h5>Технологии ИИ в разработке ПО</h5><div class="meta"><span>09:50–11:20</span><span class="a-room"><small>ауд.</small><b>2334</b></span></div></div></div>
+              <div class="a-row"><span class="t">10:30</span><div><h5>Консультация по лабораторной</h5><div class="meta"><span>10:30–11:00 · событие (пример)</span></div></div></div>
+              <p class="a-cap"><svg class="ic"><use href="#i-clash"/></svg>Наложение 30 мин: 10:30–11:00</p>
+            </li>
+            <li class="a-row" style="list-style:none"><span class="t">13:30</span><div><h5>Волейбол</h5><div class="meta"><span>13:30–15:00</span><span class="a-room"><small>ауд.</small><b>4405</b></span><span>Большой зал</span></div></div></li>
+            <li class="a-row deadline" style="list-style:none;border-bottom:0"><span class="t">18:00</span><div><h5>Лабораторная по алгоритмам</h5><div class="meta kind"><svg class="ic" style="color:var(--rd)"><use href="#i-flag"/></svg><span style="color:var(--rd);font-weight:600">Дедлайн · сдать до 18:00</span></div></div></li>
+          </ol>
+          <div class="a-actions"><span class="a-btn pri"><svg class="ic"><use href="#i-plus"/></svg>Запись</span><span class="a-btn">Выбрать шаг из планов</span></div>
+        </article>
+      </div>
+
+      <div class="col">
+        <p class="mocklabel">Карточки планов · первая в состоянии фокуса</p>
+        <article class="panel a-plan focus">
+          <div class="a-cover" aria-hidden="true"><svg viewBox="0 0 400 58" preserveAspectRatio="none" fill="none" stroke="currentColor" style="color:var(--i)"><g stroke-width="1.5"><rect x="12" y="10" width="64" height="38"/><rect x="88" y="10" width="64" height="38"/><rect x="164" y="10" width="64" height="38"/><rect x="240" y="10" width="64" height="38" stroke-dasharray="4 4"/><rect x="316" y="10" width="64" height="38" stroke-dasharray="4 4"/></g><rect x="13" y="11" width="62" height="36" fill="var(--mk)" stroke="none"/></svg></div>
+          <div class="body">
+            <h4>Снять первый короткий ролик</h4>
+            <div class="a-boxes" aria-label="Выполнено 1 из 3"><i class="on"><svg><use href="#i-check"/></svg></i><i></i><i></i><b>1 из 3</b></div>
+            <ul class="a-steps">
+              <li class="done"><svg class="ic"><use href="#i-done"/></svg><span>Посмотреть урок</span></li>
+              <li class="nx"><svg class="ic"><use href="#i-step"/></svg><span>Дальше · Собрать черновик</span><span class="when">сб 21 ноя</span></li>
+              <li><svg class="ic"><use href="#i-step"/></svg><span>Посмотреть ролик целиком</span><span class="when" style="color:var(--m)">без даты</span></li>
+            </ul>
+            <p class="a-link"><span>Материал: Урок по монтажу ↗</span><span>Открыть план →</span></p>
+          </div>
+        </article>
+        <article class="panel a-plan">
+          <div class="a-cover" aria-hidden="true"><svg viewBox="0 0 400 58" preserveAspectRatio="none" fill="none" stroke="currentColor" style="color:var(--i)" stroke-width="1.2"><path d="M0 14H400M0 29H400M0 44H400M50 0V58M100 0V58M150 0V58M200 0V58M250 0V58M300 0V58M350 0V58"/></svg></div>
+          <div class="body">
+            <h4>Собрать список книг</h4>
+            <p class="note" style="margin:0;color:var(--m)">Шагов пока нет</p>
+            <div class="a-slot"><svg class="ic"><use href="#i-plus"/></svg>Первый шаг</div>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="legend" style="color:var(--i)" aria-label="Обозначения"><span><svg class="ic"><use href="#i-lesson"/></svg>пара</span><span><svg class="ic"><use href="#i-event"/></svg>событие</span><span><svg class="ic"><use href="#i-flag"/></svg>дедлайн, пунктирная линия</span><span><svg class="ic"><use href="#i-step"/></svg>шаг</span><span><svg class="ic"><use href="#i-done"/></svg>шаг выполнен, зачёркнут</span><span><svg class="ic"><use href="#i-star"/></svg>день рождения</span><span><svg class="ic"><use href="#i-clash"/></svg>наложение, красная скобка</span></div>
+  </div>
+
+  <!-- ================= B ================= -->
+  <div class="board b" data-board data-mode="light" id="dirB" aria-label="Макет направления Б «Полётное задание»" style="margin-top:28px">
+    <div class="board-bar" style="background:var(--surface);color:var(--ink)">
+      <div><h3>Б · «Полётное задание»</h3><p>Бланк диспетчера: гротеск и моноширинные цифры, график времени, сигнальный оранжевый только для «сейчас», «сегодня» и наложения. Орбита показывает прогресс плана.</p></div>
+      <div class="modes" role="group" aria-label="Тема макета Б"><button type="button" aria-pressed="true" data-set="light">Светлая</button><button type="button" aria-pressed="false" data-set="dark">Ночная кабина</button></div>
+    </div>
+    <div class="stage">
+      <div class="head">
+        <p class="mocklabel">Заголовок недели · полоса под числом: день 08:00–20:00, тёмные блоки — пары</p>
+        <div class="panel b-head">
+          <div class="b-row1"><span class="b-btn">‹</span><span class="b-btn">›</span><span class="b-btn">Сегодня</span><span class="b-par">Нед. 12 · чётная</span>
+            <span class="sp"><span class="b-btn">Мес</span><span class="b-btn" data-on>Нед</span></span></div>
+          <h4 class="b-title">16–22 ноября <small>2026</small></h4>
+          <p class="b-sum"><b>16 пар</b> · 1 дедлайн · 1 событие · 1 шаг</p>
+          <ol class="b-strip">
+            <li><span class="wd">Пн</span><b>16</b><span class="load"><i style="left:29.2%;width:12.5%"></i><i style="left:45.8%;width:12.5%"></i></span><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span></li>
+            <li><span class="wd">Вт</span><b>17</b><span class="load"><i style="left:1.4%;width:12.5%"></i><i style="left:15.3%;width:12.5%"></i><i style="left:45.8%;width:12.5%"></i><i style="left:76.4%;width:12.5%"></i></span><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>3<span class="t"> пары</span></span></li>
+            <li><span class="wd">Ср</span><b>18</b><span class="load"><i style="left:1.4%;width:12.5%"></i><i style="left:15.3%;width:12.5%"></i><i style="left:29.2%;width:12.5%"></i></span><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span></li>
+            <li><span class="wd">Чт</span><b>19</b><span class="load"><i style="left:15.3%;width:12.5%"></i><i style="left:29.2%;width:12.5%"></i></span><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span></li>
+            <li class="today"><span class="wd">Пт</span><b>20</b><span class="load"><i style="left:15.3%;width:12.5%"></i><i style="left:45.8%;width:12.5%"></i><i class="dl" style="left:83.3%"></i><span class="now" style="--n:10%" title="сейчас 09:12"></span></span>
+              <span class="stamp">Сегодня</span>
+              <span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>2<span class="t"> пары</span></span>
+              <span class="ln"><svg class="ic"><use href="#i-flag"/></svg>18:00</span>
+              <span class="clash"><svg class="ic"><use href="#i-clash"/></svg><span>Наложение</span></span></li>
+            <li><span class="wd">Сб</span><b>21</b><span class="load"><i style="left:15.3%;width:12.5%"></i><i style="left:29.2%;width:12.5%"></i><i style="left:45.8%;width:12.5%"></i></span><span class="ln"><svg class="ic"><use href="#i-lesson"/></svg>3<span class="t"> пары</span></span><span class="ln"><svg class="ic"><use href="#i-step"/></svg>1<span class="t"> шаг</span></span></li>
+            <li><span class="wd">Вс</span><b>22</b><span class="load"></span><span class="ln" style="color:var(--m)">Пусто</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="col">
+        <p class="mocklabel">Выбранный день · ширина телефона</p>
+        <article class="panel b-day">
+          <header class="b-dayhead"><div><p class="mono">Пт · 20 нояб · нед. 12</p><h4>Сегодня</h4></div><span class="b-clock">09:12</span></header>
+          <div class="b-next">
+            <span class="mono">Дальше · через 38 мин</span>
+            <h5>Технологии ИИ в разработке ПО</h5>
+            <div class="row"><span class="mono" style="font-weight:600">09:50–11:20</span><span class="b-room"><small>АУД</small><b>2334</b></span></div>
+          </div>
+          <div class="b-tl">
+            <div class="b-cl">
+              <div class="b-ticks" style="height:112px"><span style="top:0">09:50</span><span style="top:48px">10:30</span><span style="top:100px">11:20</span></div>
+              <div class="b-area" style="height:108px">
+                <div class="b-hatch" style="top:48px;height:36px"></div>
+                <div class="b-blk lesson nx" style="left:0;top:0;height:108px;width:calc(58% - 3px)"><h5>Технологии ИИ в разработке ПО</h5><span class="mono">Пара</span><br><span class="rm">2334</span></div>
+                <div class="b-blk event" style="left:calc(58% + 3px);top:48px;height:36px;right:0"><h5 style="font-size:13.5px">Консультация</h5></div>
+              </div>
+            </div>
+            <p class="b-cap"><svg class="ic"><use href="#i-clash"/></svg>Наложение 30 мин · 10:30–11:00</p>
+            <div class="b-gap"><span></span><div><span>Окно 2 ч 10 мин</span></div></div>
+            <div class="b-cl">
+              <div class="b-ticks" style="height:112px"><span style="top:0">13:30</span><span style="top:100px">15:00</span></div>
+              <div class="b-area" style="height:108px"><div class="b-blk lesson" style="left:0;right:0;top:0;height:108px"><h5>Волейбол</h5><span class="mono">Пара · Большой зал</span><br><span class="rm">4405</span></div></div>
+            </div>
+            <div class="b-gap"><span></span><div><span>Окно 3 ч 00 мин</span></div></div>
+            <div class="b-cl">
+              <div class="b-ticks" style="height:44px"><span style="top:6px">18:00</span></div>
+              <div class="b-dl"><svg class="ic"><use href="#i-flag"/></svg><div><h5>Лабораторная по алгоритмам</h5><span class="mono">Сдать до 18:00</span></div></div>
+            </div>
+          </div>
+          <div class="b-actions"><span class="b-act pri"><svg class="ic"><use href="#i-plus"/></svg>Запись</span><span class="b-act">Выбрать шаг из планов</span></div>
+        </article>
+      </div>
+
+      <div class="col">
+        <p class="mocklabel">Карточки планов · первая в состоянии фокуса</p>
+        <article class="panel b-plan focus">
+          <div class="b-ptop">
+            <svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="32" cy="32" r="4" fill="currentColor"/><circle cx="32" cy="10" r="6" fill="var(--sig)" stroke="currentColor" stroke-width="2"/><circle cx="51" cy="43" r="5.5" fill="var(--p)" stroke="currentColor" stroke-width="2"/><circle cx="13" cy="43" r="5.5" fill="var(--p)" stroke="currentColor" stroke-width="2"/></svg>
+            <div><p class="mono">План · шагов 3</p><h4>Снять первый короткий ролик</h4></div>
+          </div>
+          <div><div class="b-seg" aria-label="Выполнено 1 из 3"><i class="on"></i><i></i><i></i></div></div>
+          <div class="b-segcap"><span>1 из 3</span><span>выполнено 33%</span></div>
+          <ul class="b-steps">
+            <li class="done"><svg class="ic"><use href="#i-done"/></svg><span>Посмотреть урок</span></li>
+            <li class="nx"><svg class="ic"><use href="#i-step"/></svg><span>Собрать черновик <span class="stamp">Дальше</span></span><span class="mono">сб 21 ноя</span></li>
+            <li><svg class="ic"><use href="#i-step"/></svg><span>Посмотреть ролик целиком</span><span class="mono">без даты</span></li>
+          </ul>
+        </article>
+        <article class="panel b-plan">
+          <div class="b-ptop">
+            <svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="32" cy="32" r="4" fill="currentColor"/></svg>
+            <div><p class="mono">План · шагов 0</p><h4>Собрать список книг</h4></div>
+          </div>
+          <div class="b-slot"><svg class="ic"><use href="#i-plus"/></svg>Первый шаг</div>
+        </article>
+      </div>
+    </div>
+    <div class="legend" style="color:var(--i)" aria-label="Обозначения"><span><svg class="ic"><use href="#i-lesson"/></svg>пара, серая плитка</span><span><svg class="ic"><use href="#i-event"/></svg>событие, синий контур</span><span><svg class="ic"><use href="#i-flag"/></svg>дедлайн, чёрная плашка</span><span><svg class="ic"><use href="#i-step"/></svg>шаг</span><span><svg class="ic"><use href="#i-done"/></svg>шаг выполнен, зачёркнут</span><span><svg class="ic"><use href="#i-clash"/></svg>наложение, штриховка</span></div>
+  </div>
+  <p class="note">В обоих макетах тип записи читается без цвета: знак, форма плашки, линия или штриховка. Цвет только дублирует.</p>
+</section>
+
+<section>
+  <h2>Выбор: «Полётное задание»</h2>
+  <p class="sub">Выбор сделан под задачи из брифа, а не по вкусу. Три из пяти главных проблем про время: что сейчас, что дальше, что накладывается. Для них нужна ось времени и один сильный акцент.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Задача</th><th>А · Дневник</th><th>Б · Полётное задание</th></tr></thead>
+    <tbody>
+      <tr><td>Утром найти пару и аудиторию</td><td>Строка «Дальше» выделена маркером, аудитория в рамке. Хорошо читается, но порядок остаётся списком.</td><td>Плашка «Дальше · через N мин» и крупная моноширинная аудитория; то же место на оси времени.</td></tr>
+      <tr><td>Наложение</td><td>Красная скобка и подпись в списке. В неделе нужна та же геометрия, что и в Б.</td><td>Блоки делят колонку, зона наложения заштрихована. Наложение видно геометрией.</td></tr>
+      <tr><td>Состояния без цвета</td><td>Знак, линия (пунктир у дедлайна), зачёркивание.</td><td>Знак, форма (плитка / контур / чёрная плашка), штриховка.</td></tr>
+      <tr><td>Длинные названия</td><td>Антиква 16–17px в узких колонках читается хуже.</td><td>Plex Sans Condensed уже обычного гротеска, в колонке недели помещается больше текста.</td></tr>
+      <tr><td>Тёмная тема</td><td>«Синяя ночь»: меловой текст, маркер остаётся жёлтым.</td><td>«Ночная кабина»: графит, янтарный акцент; салатового блока нет.</td></tr>
+      <tr><td>Узнаваемость</td><td>Умеренная: дневник с маркером встречается часто.</td><td>Высокая: орбита становится данными (прогресс плана, отметка «сейчас»).</td></tr>
+      <tr><td>Стоимость</td><td class="good">Низкая: шрифты уже есть, структура недели прежняя.</td><td class="bad">Средняя: новая ось времени в неделе, два локальных шрифта, новые токены.</td></tr>
+      <tr><td>Риск вкуса</td><td>Безопасно, может показаться «ещё одним бумажным календарём».</td><td>Холоднее и техничнее; проверить пятисекундным тестом на 5 студентах.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="pick" style="margin-top:18px">
+    <h3>Решение</h3>
+    <p>Выбирается Б. Изменения 1–3 ниже не зависят от оформления и могут идти раньше перекраски на текущих токенах. Если вкус владельца продукта окажется против Б, все пять изменений реализуются и в А: ось времени из изменения 2 нужна в любом из направлений.</p>
+    <p class="note" style="margin:0">Для Б в приложении потребуются локальные <code>@fontsource/ibm-plex-sans-condensed</code> и <code>@fontsource/ibm-plex-mono</code> с кириллицей (ТЗ требует поставку шрифтов локально). Для времени и аудитории достаточно Inter с <code>tabular-nums</code>, если ещё один шрифт нежелателен.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Пять приоритетных изменений</h2>
+  <p class="sub">Порядок задан пользой для студента: сначала утро и наложения, затем доступность, планы и в конце шапка. Каждое изменение можно выпускать отдельно.</p>
+
+  <article class="card chg">
+    <header><span class="n">1</span><h3>Утро: следующая пара и аудитория без кликов</h3></header>
+    <dl>
+      <dt>Экран</dt><dd>Календарь, повестка сегодняшнего дня (компьютер и телефон)</dd>
+      <dt>Проблема</dt><dd>Слой пар выключен при каждой загрузке, пары стоят блоком после записей, аудитория набрана вторым планом, а крупнее всех кнопка «Редактировать пару». Отметки «сейчас» и «дальше» нет.</dd>
+      <dt>Изменение</dt><dd><ul>
+        <li>Слой пар включён по умолчанию, если в базе есть пары; выбор запоминается в <code>localStorage</code>. Сводка месяца остаётся независимой от слоя, как требует README.</li>
+        <li>Над повесткой сегодняшнего дня плашка «Дальше · через 38 мин» с названием и аудиторией крупно (моноширинный 24–28px, в рамке).</li>
+        <li>Один хронологический список: пары, события, дедлайны вместе. «Редактировать» уходит в меню «⋯» строки.</li>
+      </ul></dd>
+      <dt>Эффект</dt><dd>Ответ на «что дальше и где» виден сразу, исчезает ошибка «не включил слой — не увидел пару».</dd>
+      <dt>Проверка</dt><dd><p><b>Компьютер.</b> Playwright: <code>page.clock.install</code> на 2026-11-20 09:12, сид с импортом пар, открыть <code>/calendar</code>. Без кликов в видимой области есть «ауд. 2334» и «через 38 мин». Перезагрузка не сбрасывает слой.</p><p><b>Телефон 390×844.</b> Плашка «Дальше» целиком выше y=700 без прокрутки. Ручная проверка: 5 студентов, вопрос «где завтра первая пара», цель ≤5 секунд без подсказок.</p></dd>
+      <dt>Где в коде</dt><dd><code>CalendarPage.tsx</code> (<code>showLessons</code>), <code>Agenda.tsx</code>, <code>lessons.ts</code> (новая <code>nextLesson(lessons, now)</code>), <code>calendar.module.css</code> (<code>.schedule</code>, <code>.lessonEntry</code>)</dd>
+    </dl>
+  </article>
+
+  <article class="card chg">
+    <header><span class="n">2</span><h3>Наложения видно геометрией, а не мелким словом</h3></header>
+    <dl>
+      <dt>Экран</dt><dd>Неделя (компьютер), день недели на телефоне, повестка, месяц</dd>
+      <dt>Проблема</dt><dd>Пометка «Пересечение» 11px с подчёркиванием похожа на ссылку. Строки недели строятся по уникальным временам начала, поэтому смещённые наложения выглядят как разные события. В месяце и повестке пометки нет. Каждый блок в неделе — отдельная Tab-остановка.</dd>
+      <dt>Изменение</dt><dd><ul>
+        <li>Недельная сетка получает ось времени с высотой блока по длительности. Пустые промежутки сворачиваются в «окно 2 ч 10 мин».</li>
+        <li>Пересекающиеся блоки делят ширину колонки, зона наложения заштрихована, рядом знак и текст «Наложение 30 мин». В повестке строка «Пересекается с …». В месяце значок у счётчика.</li>
+        <li>Неделя получает одну Tab-остановку на сетку и стрелки, как в месяце, плюс ссылка «К повестке».</li>
+      </ul></dd>
+      <dt>Эффект</dt><dd>Наложение и окна между парами видны без чтения. Путь клавиатурой до повестки короче.</dd>
+      <dt>Проверка</dt><dd><p><b>Компьютер 1440.</b> Фикстура: пара 09:50–11:20 и событие 10:30–11:00 (плюс три события в 10:30). Оба блока шире 45% колонки, штриховка видна, <code>aria-label</code> содержит «пересекается». Tab от шапки до повестки не больше трёх остановок.</p><p><b>Телефон 390.</b> Кластер в две колонки по ≥150px, текст не обрезан, знак и подпись видны. Расширить тест «недельный вид показывает пересечения» в <code>edits.spec.ts</code>. На 800px проверить, что слова не рвутся посреди.</p></dd>
+      <dt>Где в коде</dt><dd><code>WeekView.tsx</code>, <code>week.module.css</code>, <code>layout.ts</code> (новая раскладка кластеров по времени рядом с <code>layoutWeek</code>), <code>Agenda.tsx</code></dd>
+    </dl>
+  </article>
+
+  <article class="card chg">
+    <header><span class="n">3</span><h3>Состояния читаются без цвета, границы контролов не слабее 3:1</h3></header>
+    <dl>
+      <dt>Экран</dt><dd>Месяц на телефоне, повестка, фильтры, галерея планов, тёмная тема</dd>
+      <dt>Проблема</dt><dd>Типы на телефоне — чёрточки 5px без подписи (<code>.segmentLabel{display:none}</code>); выполненный шаг не отличается. Выключенный переключатель 1.16:1, кнопка «Выбрать шаг из планов» 1.17:1, трек прогресса 1.53:1. В тёмной теме пара и дедлайн оба коричневые. Салатовая заливка зашита в обеих темах.</dd>
+      <dt>Изменение</dt><dd><ul>
+        <li>Единый набор знаков: пара ▮, событие ◇, дедлайн ⚑, шаг ○ / ✓, день рождения ✦. В мобильном месяце вместо чёрточек до трёх знаков 10px и «+N».</li>
+        <li>Токен <code>--control-line</code> с контрастом не ниже 3:1 для рамок селектов, переключателей, кнопок, прогресса. «Выбрать шаг из планов» становится контурной кнопкой 1.5px.</li>
+        <li>«Сегодня» — метка и верхняя полоса. «Выбрано» — заливка. Салатовый уходит в токен <code>--now</code>, у которого есть тёмное значение.</li>
+        <li>Для forced-colors знаки и границы задаются через <code>border</code> и <code>currentColor</code>.</li>
+      </ul></dd>
+      <dt>Эффект</dt><dd>Типы и состояния различимы при цветовой слепоте, на солнце, в режиме высокой контрастности.</dd>
+      <dt>Проверка</dt><dd><p><b>Телефон 390.</b> Снимок с <code>filter: grayscale(1)</code>: различимы четыре типа и «выполнено / нет». В Chromium с <code>forcedColors: 'active'</code> знаки остаются.</p><p><b>Компьютер.</b> axe-core и расчёт 1.4.11 для всех контролов; в тёмной теме нет блока ярче 12:1 на площади больше кнопки.</p></dd>
+      <dt>Где в коде</dt><dd><code>theme.ts</code> (токены), <code>calendar.module.css</code> (<code>.segment</code>, <code>.agendaHead</code>), <code>week.module.css</code> (<code>.day[aria-pressed]</code>), <code>MonthGrid.tsx</code> (<code>kindMarks</code> вместо emoji 🎁)</dd>
+    </dl>
+  </article>
+
+  <article class="card chg">
+    <header><span class="n">4</span><h3>Карточка плана и путь шага: от клика до результата</h3></header>
+    <dl>
+      <dt>Экран</dt><dd>Планы (галерея, деталь плана), диалог выбора шага, повестка после назначения</dd>
+      <dt>Проблема</dt><dd><ul>
+        <li>Кольцо фокуса у карточки идёт вокруг заголовка, а не вокруг карточки (проверить в браузере).</li>
+        <li>У пустого плана полоса «0 из 0», кнопка «Добавить первый шаг» похожа на шаг. «Далее» набрано 12px. Раздел «Выполненные 0» без пояснения.</li>
+        <li>В деталях у каждого шага четыре кнопки постоянно (↑ ↓ Править Удалить). Ручка ⠿ скрыта от скринридера.</li>
+        <li>После назначения шага остаётся «Шаг назначен.», фокус на запись не уходит.</li>
+      </ul></dd>
+      <dt>Изменение</dt><dd><ul>
+        <li>Обложка-орбита: узлы по числу шагов, выполненные залиты. Загрузка своего рисунка остаётся. Прогресс сегментами, «Далее» строкой со штампом и датой.</li>
+        <li>Фокус всей карточки: <code>.card:has(:focus-visible)</code> с outline 3px. Пустой план показывает «Шагов пока нет» и пунктирный слот «Первый шаг». У пустого раздела «Выполненные» подсказка.</li>
+        <li>Строка шага: видимая ручка, одно меню «⋯» (Править, Вверх, Вниз, Удалить), цель ≥44px.</li>
+        <li>После назначения: подсветка новой записи, фокус на ней, сообщение со ссылкой «Открыть план».</li>
+      </ul></dd>
+      <dt>Эффект</dt><dd>Карточка читается как один объект. Первый шаг очевиден. Результат выбора шага не теряется.</dd>
+      <dt>Проверка</dt><dd><p><b>Компьютер.</b> Клик по любой точке карточки открывает план. Tab: рамка фокуса совпадает с карточкой ±4px. Порядок шагов после перетаскивания и после ↑ ↓ сохраняется при перезагрузке.</p><p><b>Телефон 390.</b> У пустого плана нет полосы прогресса. Цель касания «⋯» и чекбокса ≥44×44. После назначения <code>document.activeElement</code> — новая запись, а <code>role="status"</code> называет шаг и дату.</p></dd>
+      <dt>Где в коде</dt><dd><code>PlansPage.tsx</code>, <code>PlanCover.tsx</code>, <code>plans.module.css</code> (<code>.cardLink::after</code>, <code>.next</code>, <code>.cardProgress</code>), <code>PlanDetailPage.tsx</code> (строки шагов), <code>StepPicker.tsx</code>, <code>CalendarPage.tsx</code> (<code>assigned</code>)</dd>
+    </dl>
+  </article>
+
+  <article class="card chg">
+    <header><span class="n">5</span><h3>Шапка: меньше декора, больше дня</h3></header>
+    <dl>
+      <dt>Экран</dt><dd>Календарь, месяц и неделя (компьютер и телефон)</dd>
+      <dt>Проблема</dt><dd>Шапка-иллюстрация 194px на 1440×900: сетка месяца идёт с y=345 до y=988, последний ряд ниже экрана. На телефоне шапка около 150px, повестка с y≈706 из 844. Заголовок повестки «28 ноября» без дня недели. Иллюстрация не несёт данных. Салатовый блок повестки перетягивает внимание.</dd>
+      <dt>Изменение</dt><dd><ul>
+        <li>Компактная шапка 56–64px: «16–22 ноября · нед. 12 чётная», ‹ ›, «Сегодня», «Месяц / Неделя». На телефоне фильтры сворачиваются в одну кнопку «Фильтры (2)».</li>
+        <li>Орбита переезжает в функцию: узлы прогресса плана и отметка «сейчас» на полосе дня. Декоративная иллюстрация убирается.</li>
+        <li>Заголовок повестки: «Пятница, 20 ноября · сегодня». Для даты вне недели: «через 3 дня».</li>
+      </ul></dd>
+      <dt>Эффект</dt><dd>Шесть строк месяца помещаются на 1440×900 без прокрутки. На телефоне повестка видна без прокрутки.</dd>
+      <dt>Проверка</dt><dd><p><b>Компьютер 1440×900.</b> <code>getBoundingClientRect()</code>: низ сетки месяца при шести неделях ≤900. Порядок Tab в шапке прежний.</p><p><b>Телефон 390×844 и 360.</b> Верх повестки ≤560. <code>scrollWidth ≤ innerWidth</code> при ширине 360 (в рубрике практики этот пункт уже есть).</p></dd>
+      <dt>Где в коде</dt><dd><code>calendar.module.css</code> (<code>.heading</code>, <code>.heading::before</code>), <code>CalendarPage.tsx</code> (заголовок, фильтры), <code>Agenda.tsx</code> + <code>dates.ts</code> (<code>longDate</code> → <code>fullDate</code>-формат), <code>theme.ts</code></dd>
+    </dl>
+  </article>
+</section>
+
+<section>
+  <h2>Что не совпадает между макетом, ТЗ и приложением</h2>
+  <p class="sub">Расхождения, которые стоит закрыть до защиты или отметить в README.</p>
+  <ul class="tight">
+    <li><b>Палитра.</b> ТЗ задаёт хвойный <code>#285641</code> и тёплый фон <code>#F8F6EF</code>. В <code>theme.ts</code> выбранный день сливовый <code>#554079</code>, фон <code>#f4f2e9</code>. Токен при этом всё ещё называется <code>--pine</code> и хранит фиолетовый.</li>
+    <li><b>План в макете.</b> Первый шаг отмечен текстовой галочкой «✓», второй — настоящим чекбоксом, у третьего маркера нет. В приложении чекбокс у всех шагов (по исходнику). В макете нет полосы прогресса.</li>
+    <li><b>Ошибка в макете.</b> В состоянии «Ошибка» поверх формы виден забытый баннер «Запись сохранена», то есть успех и ошибка одновременно.</li>
+    <li><b>Неделя.</b> В макете неделя — колонки без часов («Весь день»). В приложении сетка по временам начала. Макет об этом не знает, как и о тёмной теме и парах.</li>
+    <li><b>Шапка.</b> В макете логотип антиквой и стрелки слева от названия; в приложении логотип с орбитальным знаком, стрелки под названием.</li>
+    <li><b>Снимки.</b> README ссылается на <code>prototype-desktop.png</code>, <code>session-02-plan-*.png</code> и другие файлы, которых в подборке нет. Сравнение «макет и рабочая версия» для плана невозможно.</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('[data-board]').forEach(function(board){
+    board.querySelectorAll('.modes button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        board.dataset.mode = btn.dataset.set;
+        board.querySelectorAll('.modes button').forEach(function(b){ b.setAttribute('aria-pressed', String(b === btn)); });
+      });
+    });
+  });
+})();
+</script>
+
+</body></html>
