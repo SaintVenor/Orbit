@@ -23,6 +23,14 @@ try {
       fullPage: true,
     });
     await capture();
+    const view = page.locator('.views');
+    await view.getByRole('button', { name: 'Неделя', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Неделя' })).toBeVisible();
+    await page.getByRole('button', { name: 'Тёмная тема' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await capture('week-dark-');
+    await page.getByRole('button', { name: 'Светлая тема' }).click();
+    await view.getByRole('button', { name: 'Месяц', exact: true }).click();
     const toggle = page.getByRole('checkbox', { name: 'Учебные пары' });
     await expect(toggle).not.toBeChecked();
     await toggle.check();

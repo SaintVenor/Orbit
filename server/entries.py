@@ -17,6 +17,7 @@ class EntryFields(BaseModel):
     endTime: str | None = Field(None, pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
     birthMonth: int | None = Field(None, ge=1, le=12, strict=True)
     birthDay: int | None = Field(None, ge=1, le=31, strict=True)
+    frequency: Literal["daily", "weekly", "monthly", "yearly"] | None = None
 
 
 class CreateEntry(EntryFields):
@@ -47,7 +48,7 @@ def normalize(fields):
         except ValueError:
             invalid("birthDay", "Укажите существующий день месяца.")
         return {
-            **values, "startDate": None, "endDate": None,
+            **values, "startDate": None, "endDate": None, "frequency": None,
             "startTime": None, "endTime": None,
         }
 

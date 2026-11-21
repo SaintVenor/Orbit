@@ -529,6 +529,183 @@
         padding: 16px;
       }
     }
+    :root {
+      --paper: #f4f2e9;
+      --card: #fffef8;
+      --line: #cfcdbf;
+      --ink: #24242a;
+      --muted: #626155;
+      --pine: #584279;
+      --green-bg: #e9e4ed;
+      --blue-bg: #e6e9fc;
+      --blue: #293b78;
+      --copper: #69408b;
+      color-scheme: light;
+    }
+    :root[data-theme="dark"] {
+      --paper: #1a1920;
+      --card: #24222b;
+      --line: #49444f;
+      --ink: #f6f1e7;
+      --muted: #c4bfc7;
+      --pine: #d8c1ff;
+      --green-bg: #274939;
+      --blue-bg: #2e3d70;
+      --blue: #dce1ff;
+      --copper: #dec3fa;
+      color-scheme: dark;
+    }
+    header {
+      background: #30243d;
+      color: #fffcf4;
+      border-bottom: 3px solid #b97560;
+    }
+    header .brand,
+    nav button,
+    header .theme {
+      color: #fffcf4;
+    }
+    nav .active {
+      background: #564461;
+      box-shadow: inset 0 -2px #d8ef8d;
+    }
+    header .theme {
+      margin-left: auto;
+      background: transparent;
+      border-color: #6380a6;
+    }
+    header .primary {
+      margin-left: 0;
+      border-color: #ddf49b;
+      background: #ddf49b;
+      color: #32233f;
+    }
+    .primary {
+      background: #554079;
+      border-color: #554079;
+      color: #fff;
+    }
+    .top {
+      justify-content: flex-start;
+      align-items: center;
+      padding: 15px 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--copper);
+      border-radius: 10px;
+    }
+    .top .tools {
+      order: -1;
+    }
+    .top .views {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+    .views [aria-pressed="true"] {
+      background: var(--green-bg);
+    }
+    .head,
+    .review {
+      background: var(--green-bg);
+    }
+    .day.other {
+      background: var(--paper);
+    }
+    .day .selected {
+      background: #554079;
+    }
+    .agenda .entry {
+      border-left-color: #5277af;
+    }
+    .week-board {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .day-column {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      padding: 6px;
+    }
+    .day-column:last-child {
+      border: 0;
+    }
+    .day-column > button {
+      width: 100%;
+      font-size: 13px;
+    }
+    .week-item {
+      overflow-wrap: anywhere;
+      font-size: 12px;
+      border-left: 3px solid #5277af;
+      border-radius: 4px;
+      padding: 6px;
+      margin-top: 6px;
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+    .week-item.day-lesson {
+      border-color: #a4833d;
+    }
+    .week-item time {
+      display: block;
+      color: var(--muted);
+    }
+    .layout[data-week] {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .plan-group-title {
+      margin-top: 16px;
+      color: var(--pine);
+    }
+    .plan-group-title.finished {
+      border-top: 1px solid var(--line);
+      margin-top: 24px;
+      padding-top: 15px;
+    }
+    @media (max-width: 700px) {
+      .top {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 9px;
+      }
+      .top > div:first-child {
+        order: 2;
+        flex: 0 0 100%;
+      }
+      .day-column:not([data-active]) .week-item {
+        display: none;
+      }
+      .day-column {
+        padding: 2px;
+      }
+      .day-column > button {
+        grid-row: 1;
+        padding: 3px;
+        font-size: 11px;
+      }
+      .week-board {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+      .week-board .day-column {
+        display: contents;
+      }
+      .day-column[data-active] .week-item {
+        grid-column: 1 / -1;
+        margin-inline: 5px;
+      }
+    }
+    .top { position:relative; isolation:isolate; overflow:hidden; color:#fff9ef; background:#332740; border:0; border-radius:4px; }
+    .top::before { content: ''; position: absolute; pointer-events: none; width: clamp(175px, 24vw, 350px); height: 170%; right: 16%; top: -36%; background: radial-gradient(circle at 69% 26%, #e0f69b 0 4px, transparent 5px),
+    radial-gradient(ellipse at 53% 55%, transparent 0 48%, #d8c0ec 48.4% 48.9%, transparent 49.5%),
+    radial-gradient(circle at 51% 51%, transparent 0 27%, #d9c0ed 27.3% 27.7%, transparent 28%),
+    radial-gradient(circle at 51% 51%, #bd9cce 0 5%, #987cae 11%, #6a547e 21%, #3c2e49 27%, transparent 28%),
+    repeating-radial-gradient(ellipse at 53% 55%, transparent 0 22px, #ad96bf44 23px, transparent 24px 35px); transform: rotate(-17deg); z-index: -1; }
+    .top h1, .top p { color:#fff9ef; }
+    .top button { background:var(--card); color:var(--ink); }
+    .agenda h2 { background:#def09f; color:#293020; padding:10px 14px; }
+    header { border-bottom:1px solid #4f4258; }
+    @media(max-width:700px){ .top::before { right:-80px; opacity:.55; } }
   </style>
   <header>
     <div>
@@ -537,6 +714,9 @@
         <button data-action="calendar">Календарь</button
         ><button data-action="plans">Планы</button>
       </nav>
+      <button class="theme" data-action="theme" aria-label="Тёмная тема">
+        ☾
+      </button>
       <button class="primary" data-action="add">＋ Добавить запись</button>
     </div>
   </header>
@@ -625,6 +805,7 @@
       termEnd: "2026-12-31",
     }));
     let showLessons = false;
+    let weekView = false;
 
     let selected = "2026-11-28",
       month = 10,
@@ -785,6 +966,60 @@
         "</div>"
       );
     }
+    function moveDay(day, offset) {
+      const date = dateFrom(day);
+      date.setUTCDate(date.getUTCDate() + offset);
+      return iso(date);
+    }
+    function weekPreview(items) {
+      const start = moveDay(selected, 1 - weekday(selected));
+      return (
+        '<section class="calendar week-board" aria-label="Неделя">' +
+        Array.from({ length: 7 }, (_, index) => {
+          const day = moveDay(start, index);
+          const contents = items
+            .filter((item) => item.from <= day && item.to >= day)
+            .map(
+              (item) =>
+                '<div class="week-item"><time>' +
+                (item.kind === "deadline" ? "18:00" : "Весь день") +
+                "</time>" +
+                escape(item.title) +
+                "</div>",
+            );
+          for (const item of lessonsOn(day))
+            contents.push(
+              '<div class="week-item day-lesson"><time>' +
+                escape(item.startTime) +
+                "–" +
+                escape(item.endTime) +
+                "</time>" +
+                escape(item.subject) +
+                "</div>",
+            );
+          return (
+            '<div class="day-column" ' +
+            (day === selected ? "data-active" : "") +
+            '><button style="grid-column:' +
+            (index + 1) +
+            '" data-date="' +
+            day +
+            '" aria-pressed="' +
+            (day === selected) +
+            '" aria-label="' +
+            formatDay(day) +
+            '">' +
+            ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][index] +
+            " " +
+            dateFrom(day).getUTCDate() +
+            "</button>" +
+            contents.join("") +
+            "</div>"
+          );
+        }).join("") +
+        "</section>"
+      );
+    }
     function render() {
       document
         .querySelectorAll("nav button")
@@ -797,11 +1032,11 @@
         );
       if (section === "plans") {
         app.innerHTML =
-          '<h1>Планы</h1><div class="gallery"><article class="plan"><div class="cover"></div><h2>Снять первый короткий ролик</h2><p>' +
+          '<h1>Планы</h1><h2 class="plan-group-title">Запланированные</h2><div class="gallery"><article class="plan"><div class="cover"></div><h2>Снять первый короткий ролик</h2><p>' +
           (done ? "2" : "1") +
           ' из 3</p><button data-action="plan">' +
           (done ? "Посмотреть ролик целиком" : "Собрать черновик") +
-          '</button></article><article class="plan"><div class="cover route"></div><h2>Пройти маршрут вдоль залива</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article><article class="plan"><div class="cover grid"></div><h2>Собрать список книг</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article></div>';
+          '</button></article><article class="plan"><div class="cover route"></div><h2>Пройти маршрут вдоль залива</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article><article class="plan"><div class="cover grid"></div><h2>Собрать список книг</h2><p>0 из 0</p><p class="muted">Добавить первый шаг</p></article></div><h2 class="plan-group-title finished">Выполненные</h2>';
         return;
       }
       if (section === "plan") {
@@ -848,12 +1083,20 @@
       const dayLessons = lessonsOn(selected);
       app.innerHTML =
         '<div class="top"><div><h1>' +
-        months[month] +
+        (weekView
+          ? formatDay(moveDay(selected, 1 - weekday(selected))) +
+            " — " +
+            formatDay(moveDay(selected, 7 - weekday(selected)))
+          : months[month]) +
         " <small>" +
         year +
         '</small></h1><p class="muted">' +
         (counts || "В этом месяце пока нет записей") +
-        '</p></div><div class="tools"><button data-action="prev" aria-label="Предыдущий месяц">‹</button><button data-action="next" aria-label="Следующий месяц">›</button><button data-action="today">Сегодня</button></div></div><div class="filters"><select id="area" aria-label="Сфера"><option value="">Все сферы</option><option value="study">Учёба</option><option value="personal">Личное</option></select><select id="kind" aria-label="Тип"><option value="">Все типы</option>' +
+        '</p></div><div class="tools"><button data-action="prev" aria-label="Предыдущий месяц">‹</button><button data-action="next" aria-label="Следующий месяц">›</button><button data-action="today">Сегодня</button></div><div class="views"><button data-action="view-month" aria-pressed="' +
+        !weekView +
+        '">Месяц</button><button data-action="view-week" aria-pressed="' +
+        weekView +
+        '">Неделя</button></div></div><div class="filters"><select id="area" aria-label="Сфера"><option value="">Все сферы</option><option value="study">Учёба</option><option value="personal">Личное</option></select><select id="kind" aria-label="Тип"><option value="">Все типы</option>' +
         Object.entries(labels)
           .map(
             ([key, label]) =>
@@ -872,13 +1115,19 @@
           : "") +
         "</div></div>" +
         (notice ? '<p class="success" role="status">' + notice + "</p>" : "") +
-        '<div class="layout"><section class="calendar" aria-label="Месяц"><div class="head">' +
-        ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-          .map((day) => "<span>" + day + "</span>")
-          .join("") +
-        "</div>" +
-        weeks.map((week) => weekMarkup(week, items)).join("") +
-        '</section><aside class="agenda" aria-label="Повестка"><h2>' +
+        '<div class="layout" ' +
+        (weekView ? "data-week" : "") +
+        ">" +
+        (weekView
+          ? weekPreview(items)
+          : '<section class="calendar" aria-label="Месяц"><div class="head">' +
+            ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+              .map((day) => "<span>" + day + "</span>")
+              .join("") +
+            "</div>" +
+            weeks.map((week) => weekMarkup(week, items)).join("") +
+            "</section>") +
+        '<aside class="agenda" aria-label="Повестка"><h2>' +
         formatDay(selected) +
         '</h2><p class="muted">Повестка дня</p>' +
         dayItems
@@ -1081,17 +1330,41 @@
           selectDay("2026-11-20");
           break;
         case "month":
+          weekView = false;
           selectDay("2026-11-28");
           break;
         case "empty":
           selectDay("2026-11-21");
           break;
         case "prev":
-          selectDay(iso(new Date(Date.UTC(year, month - 1, 1))));
+          selectDay(
+            weekView
+              ? moveDay(selected, -7)
+              : iso(new Date(Date.UTC(year, month - 1, 1))),
+          );
           break;
         case "next":
-          selectDay(iso(new Date(Date.UTC(year, month + 1, 1))));
+          selectDay(
+            weekView
+              ? moveDay(selected, 7)
+              : iso(new Date(Date.UTC(year, month + 1, 1))),
+          );
           break;
+        case "view-month":
+        case "view-week":
+          weekView = button.dataset.action === "view-week";
+          render();
+          break;
+        case "theme": {
+          const dark = document.documentElement.dataset.theme !== "dark";
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          button.textContent = dark ? "☀" : "☾";
+          button.setAttribute(
+            "aria-label",
+            dark ? "Светлая тема" : "Тёмная тема",
+          );
+          break;
+        }
         case "calendar":
         case "plans":
         case "plan":

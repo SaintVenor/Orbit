@@ -6,6 +6,7 @@
   "scripts": {
     "setup": "node scripts/orbit.mjs setup",
     "seed": "node scripts/orbit.mjs seed",
+    "import-schedule": "node scripts/orbit.mjs import-schedule",
     "dev": "node scripts/orbit.mjs dev",
     "test-client": "node scripts/orbit.mjs test-client",
     "build": "tsc --noEmit && vite build"

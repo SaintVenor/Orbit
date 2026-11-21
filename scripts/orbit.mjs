@@ -40,6 +40,8 @@ if (mode === 'setup') {
   checked(node, [playwright, 'install', 'chromium']);
 } else if (mode === 'seed') {
   checked(python, ['-m', 'server.seed', ...process.argv.slice(3)]);
+} else if (mode === 'import-schedule') {
+  checked(python, ['-m', 'server.import_schedule']);
 } else if (mode === 'test-client') {
   const temporary = mkdtempSync(join(cache, 'test-db-'));
   try {

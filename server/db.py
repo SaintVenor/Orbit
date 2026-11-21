@@ -23,3 +23,9 @@ def connect():
 def initialize():
     with connect() as db:
         db.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
+        db.execute("BEGIN IMMEDIATE")
+        columns = {row["name"] for row in db.execute("PRAGMA table_info(lessons)")}
+        if "weekInterval" not in columns:
+            db.execute("ALTER TABLE lessons ADD COLUMN weekInterval INTEGER NOT NULL DEFAULT 1 CHECK (weekInterval IN (1, 2))")
+        if "firstDate" not in columns:
+            db.execute("ALTER TABLE lessons ADD COLUMN firstDate TEXT")

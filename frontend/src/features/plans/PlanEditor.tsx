@@ -1,9 +1,10 @@
-import { Alert, Button, Modal, NativeSelect, Textarea, TextInput } from '@mantine/core';
+import { Alert, Button, FileInput, Modal, NativeSelect, Textarea, TextInput } from '@mantine/core';
 import { useState, type FormEvent } from 'react';
 import type { Area } from '../../app/api';
 import { useMutation, useOperationId } from '../../app/useMutation';
 import { isDateKey } from '../calendar/dates';
 import { planApi, type PlanDetail, type Resource, type Step } from './planApi';
+import { covers, PlanCover } from './PlanCover';
 import styles from './plans.module.css';
 
 type Mode =
@@ -28,6 +29,8 @@ export function PlanEditor({ mode, onClose }: { mode: Mode; onClose: () => void 
   const [note, setNote] = useState(plan?.note ?? '');
   const [date, setDate] = useState(step?.scheduledDate ?? '');
   const [url, setUrl] = useState('');
+  const [cover, setCover] = useState(plan?.cover ?? '');
+  const [reading, setReading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { submit, busy, error, isLocked, clearError } = useMutation();
   const operationId = useOperationId();
@@ -38,9 +41,23 @@ export function PlanEditor({ mode, onClose }: { mode: Mode; onClose: () => void 
     clearError();
   }
 
+  function upload(file: File | null) {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 400_000) {
+      setErrors(old => ({ ...old, cover: 'Выберите PNG, JPEG или WebP до 400 КБ.' }));
+      return;
+    }
+    const reader = new FileReader();
+    setReading(true);
+    reader.onload = () => change('cover', String(reader.result), setCover);
+    reader.onerror = () => setErrors(old => ({ ...old, cover: 'Не удалось прочитать файл.' }));
+    reader.onloadend = () => setReading(false);
+    reader.readAsDataURL(file);
+  }
+
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isLocked()) return;
+    if (isLocked() || reading) return;
 
     const name = title.trim();
     const nextErrors: Record<string, string> = {};
@@ -56,7 +73,7 @@ export function PlanEditor({ mode, onClose }: { mode: Mode; onClose: () => void 
 
     switch (mode.kind) {
       case 'plan': {
-        const fields = { title: name, area, note: note.trim() };
+        const fields = { title: name, area, note: note.trim(), cover: cover || null };
         void submit(() => mode.plan
           ? planApi.edit(mode.plan.id, fields)
           : planApi.create(operationId(fields), fields), mode.saved);
@@ -96,6 +113,14 @@ export function PlanEditor({ mode, onClose }: { mode: Mode; onClose: () => void 
           onChange={event => setArea(event.currentTarget.value as Area)} />
         <Textarea label="Заметка" value={note} maxLength={4000} readOnly={busy} minRows={3}
           error={fieldError('note')} onChange={event => change('note', event.currentTarget.value, setNote)} />
+        <div className={styles.coverPreview}><PlanCover motif={plan?.motif ?? 'film'} cover={cover} /></div>
+        <NativeSelect label="Обложка" disabled={busy || reading}
+          value={cover.startsWith('data:') ? 'custom' : cover}
+          data={[{ value: '', label: 'По умолчанию' }, ...covers.map(([value, label]) => ({ value, label })),
+            ...(cover.startsWith('data:') ? [{ value: 'custom', label: 'Моя картинка' }] : [])]}
+          onChange={event => { if (event.currentTarget.value !== 'custom') change('cover', event.currentTarget.value, setCover); }} />
+        <FileInput label="Загрузить свою картинку" accept="image/png,image/jpeg,image/webp" disabled={busy || reading}
+          error={fieldError('cover')} onChange={upload} />
       </>}
       {mode.kind === 'step' && <>
         <TextInput type="date" name="scheduledDate" label="Дата шага" value={date} readOnly={busy} error={fieldError('scheduledDate')}
@@ -104,7 +129,7 @@ export function PlanEditor({ mode, onClose }: { mode: Mode; onClose: () => void 
       </>}
       {mode.kind === 'resource' && <TextInput type="url" name="url" label="Ссылка" required value={url}
         readOnly={busy} error={fieldError('url')} onChange={event => change('url', event.currentTarget.value, setUrl)} />}
-      <Button className={styles.save} type="submit" loading={busy}>{busy ? 'Сохраняем…' : 'Сохранить'}</Button>
+      <Button className={styles.save} type="submit" disabled={reading} loading={busy}>{busy ? 'Сохраняем…' : 'Сохранить'}</Button>
     </form>
   </Modal>;
 }

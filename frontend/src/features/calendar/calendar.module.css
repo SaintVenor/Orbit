@@ -1,24 +1,35 @@
 .heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 16px;
-  margin-bottom: 14px;
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'title views' 'controls views';
+  align-items: end; gap: 14px 20px; padding: 22px 28px;
+  color: #fff9ef; background: #332740; border-radius: 4px;
 }
+.heading::before { content: ''; position: absolute; pointer-events: none; width: clamp(175px, 24vw, 350px); height: 170%; right: 16%; top: -36%; background: radial-gradient(circle at 69% 26%, #e0f69b 0 4px, transparent 5px),
+    radial-gradient(ellipse at 53% 55%, transparent 0 48%, #d8c0ec 48.4% 48.9%, transparent 49.5%),
+    radial-gradient(circle at 51% 51%, transparent 0 27%, #d9c0ed 27.3% 27.7%, transparent 28%),
+    radial-gradient(circle at 51% 51%, #bd9cce 0 5%, #987cae 11%, #6a547e 21%, #3c2e49 27%, transparent 28%),
+    repeating-radial-gradient(ellipse at 53% 55%, transparent 0 22px, #ad96bf44 23px, transparent 24px 35px); transform: rotate(-17deg); z-index: -1; }
+.heading .controls { grid-area: controls; }
+.heading .calendarTitle { grid-area: title; }
+.heading > :last-child { grid-area: views; align-self: end; }
+.calendarTitle { min-width: 0; margin-inline-end: auto; }
+.heading .calendarTitle[data-week-title] h1 { text-transform: none; }
+.layout[data-week] { grid-template-columns: minmax(0, 1fr); }
 .heading h1 {
-  font-size: 54px;
+  font-size: clamp(42px, 4.5vw, 68px); letter-spacing: -.055em;
   line-height: 1.07;
   margin: 0;
   text-transform: capitalize;
 }
 .heading h1 span {
-  color: var(--muted);
-  font: 500 23px var(--mantine-font-family);
+  color: #d7c9de;
+  font: 500 18px var(--mantine-font-family);
   margin-left: 8px;
 }
-.summary { color: var(--muted); margin: 6px 0 0; min-height: 1.55em; }
+.summary { color: #e1d6e6; margin: 6px 0 0; min-height: 1.55em; }
 .controls, .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.filters { margin-bottom: 12px; }
+.filters { padding-block: 14px; }
 .filters select { background-color: var(--surface); }
 .scheduleControls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-inline-start: auto; }
 .layout {
@@ -31,11 +42,11 @@
   min-width: 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 4px;
 }
 .calendar { overflow: hidden; }
 .weekdays, .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.weekdays { background: #f1f1e8; color: var(--muted); font-size: 13px; }
+.weekdays { font-weight: 650; letter-spacing: .08em; text-transform: uppercase; background: var(--panel-alt); color: var(--muted); font-size: 13px; }
 .weekdays span { padding: 8px 11px; }
 .week {
   grid-template-rows: 34px repeat(3, 17px) 15px var(--lesson-row, 1px);
@@ -54,8 +65,10 @@
   color: var(--ink);
   cursor: pointer;
 }
+.day:hover { background: var(--panel-alt); }
+.day[aria-pressed="true"] { background: color-mix(in srgb, var(--selected) 9%, var(--surface)); }
 .day:nth-child(7) { border-right: 0; }
-.day[data-other] { background: #faf9f2; color: var(--muted); }
+.day[data-other] { background: var(--paper); color: var(--muted); }
 .day:focus-visible { outline-offset: -3px; z-index: 1; }
 .day span {
   display: grid;
@@ -66,7 +79,7 @@
   font: 600 14px var(--mantine-font-family);
 }
 .day[aria-current] span { border: 1px solid var(--pine); }
-.day[aria-pressed="true"] span { background: var(--pine); color: white; }
+.day[aria-pressed="true"] span { background: var(--selected); color: var(--selected-ink); }
 .segment {
   z-index: 2;
   border: 0;
@@ -114,8 +127,10 @@
   font: 650 11px var(--mantine-font-family);
   cursor: pointer;
 }
-.agenda { padding: 20px; min-width: 0; }
-.agenda h2 { font-size: 28px; line-height: 1.14; margin: 0; }
+.agenda { padding: 18px; min-width: 0; border-radius: 4px; }
+.agendaHead { margin: -18px -18px 16px; padding: 17px 18px; background: #def09f; color: #2c3426; }
+.agendaHead .agendaLabel { color: #405134; text-transform: uppercase; font-size: 11px; letter-spacing: .13em; font-weight: 700; margin: 0 0 4px; }
+.agenda h2 { font-size: 36px; letter-spacing: -.045em; line-height: 1.14; margin: 0; }
 .agenda h2:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
 .agendaLabel { color: var(--muted); margin: 4px 0 14px; }
 .agendaEntry {
@@ -140,8 +155,10 @@
 .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .formActions { display: flex; justify-content: end; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 @media (max-width: 700px) {
-  .heading { flex-wrap: wrap; align-items: start; gap: 8px; margin-bottom: 10px; }
-  .heading h1 { font-size: 36px; }
+  .heading { grid-template-areas: 'title title' 'controls views'; align-items: center; gap: 16px 4px; padding: 16px 12px; }
+  .heading::before { right: -72px; top: -67%; opacity: .55; }
+  .heading .controls { gap: 4px; }
+  .heading h1 { font-size: 40px; }
   .heading h1 span { font-size: 17px; }
   .summary { font-size: 13px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -160,4 +177,9 @@
   .lessonCount { justify-self: center; margin-inline: 1px; padding-inline: 2px; font-size: 10px; }
   .more { text-align: center; padding: 0; font-size: 10px; }
   .agenda { padding: 14px; }
+  .agendaHead { margin: -14px -14px 14px; }
 }
+
+.repeatHint { color: var(--muted); font-size: 13px; margin: 0; }
+.pickButton { min-height: 40px; height: auto; padding-block: 8px; }
+.pickLabel { white-space: normal; overflow-wrap: anywhere; text-align: left; line-height: 1.4; min-width: 0; }

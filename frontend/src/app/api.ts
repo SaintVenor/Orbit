@@ -1,6 +1,8 @@
 export type Area = 'study' | 'personal';
 export type EntryKind = 'deadline' | 'event' | 'birthday';
 export type Kind = EntryKind | 'step';
+export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type DeletionScope = 'all' | 'one' | 'before' | 'after';
 
 export interface EntryFields {
   title: string;
@@ -12,6 +14,7 @@ export interface EntryFields {
   endTime: string | null;
   birthMonth: number | null;
   birthDay: number | null;
+  frequency?: Frequency | null;
 }
 
 export interface CalendarItem {
@@ -26,6 +29,10 @@ export interface CalendarItem {
   planId?: string;
   planTitle?: string;
   done?: boolean;
+  frequency?: Frequency;
+  occurrenceDate?: string;
+  seriesStart?: string | null;
+  seriesEnd?: string | null;
 }
 
 export class ApiError extends Error {
@@ -65,7 +72,8 @@ export const api = {
   editEntry(id: string, fields: EntryFields) {
     return request<EntryFields & { id: string }>('/entries/' + encodeURIComponent(id), json('PATCH', fields));
   },
-  deleteEntry(id: string) {
-    return request<void>('/entries/' + encodeURIComponent(id), { method: 'DELETE' });
+  deleteEntry(id: string, scope: DeletionScope, occurrence?: string) {
+    const query = scope === 'all' ? '' : '?' + new URLSearchParams({ scope, occurrence: occurrence ?? '' });
+    return request<void>('/entries/' + encodeURIComponent(id) + query, { method: 'DELETE' });
   },
 };

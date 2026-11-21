@@ -1,0 +1,41 @@
+
+> orbit-calendar@0.1.0 test-client
+> node scripts/orbit.mjs test-client
+
+[WebServer] (node:13768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] INFO:     Started server process [13664]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8108 (Press CTRL+C to quit)
+
+Running 23 tests using 1 worker
+
+(node:12008) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 frontend\tests\calendar-real.spec.ts:35:3 › поездка переживает reload, перенос конца и удаление при ширине 1440 (2.8s)
+  ok  2 frontend\tests\calendar-real.spec.ts:35:3 › поездка переживает reload, перенос конца и удаление при ширине 360 (2.4s)
+  ok  3 frontend\tests\calendar-real.spec.ts:83:1 › пересекающий весь диапазон интервал, ночь и ежегодная дата читаются из SQLite (162ms)
+  ok  4 frontend\tests\calendar-ui.spec.ts:26:1 › клавиатура, Escape, фокус и ошибки конкретных полей (1.0s)
+  ok  5 frontend\tests\calendar-ui.spec.ts:67:1 › задержка, пустые данные, ошибки загрузки и сохранения, затем успех (1.1s)
+  ok  6 frontend\tests\calendar-ui.spec.ts:132:3 › двойной клик во время отправки не создаёт второй POST (644ms)
+  ok  7 frontend\tests\calendar-ui.spec.ts:132:3 › повторный Enter во время отправки не создаёт второй POST (597ms)
+  ok  8 frontend\tests\calendar-ui.spec.ts:160:1 › задержанный ответ старого месяца не меняет текущий (577ms)
+  ok  9 frontend\tests\calendar-ui.spec.ts:202:1 › фильтры и переполнение сохраняют полный список дня (598ms)
+  ok 10 frontend\tests\edits.spec.ts:9:1 › ежедневная серия начинается с указанной даты и поддерживает четыре области удаления (723ms)
+  ok 11 frontend\tests\edits.spec.ts:37:1 › ежемесячные серии пропускают отсутствующий день, ежегодные — невисокосный год (97ms)
+  ok 12 frontend\tests\edits.spec.ts:57:1 › пара через неделю сохраняет выбранную первую дату (643ms)
+  ok 13 frontend\tests\edits.spec.ts:73:1 › недельный вид показывает пересечения и сохраняет тёмную тему (800ms)
+  ok 14 frontend\tests\edits.spec.ts:94:1 › полный клик карточки, новая обложка, перенос и удаление шагов и плана (1.2s)
+  ok 15 frontend\tests\edits.spec.ts:126:1 › длинный шаг переносится в окне выбора на ширине 360 px (482ms)
+  ok 16 frontend\tests\plans-picker.spec.ts:3:1 › из пустого выбора можно открыть планы и вернуться к выбранной дате (566ms)
+  ok 17 frontend\tests\plans-picker.spec.ts:17:1 › ошибка при назначении сохраняет выбор и разрешает повторить запрос (623ms)
+  ok 18 frontend\tests\plans-real.spec.ts:18:1 › из плана в повестку и обратно: назначение, выполнение, перенос и снятие даты (2.2s)
+  ok 19 frontend\tests\plans-real.spec.ts:97:1 › создание плана, первый шаг, правка названия, валидация и удаление материала (2.3s)
+  ok 20 frontend\tests\plans-real.spec.ts:150:1 › повтор создания и параллельное добавление шагов сохраняют уникальный порядок (130ms)
+  ok 21 frontend\tests\schedule.spec.ts:10:1 › недельные пары сохраняются, не попадают в сводку и исчезают за границей семестра (3.3s)
+  ok 22 frontend\tests\schedule.spec.ts:127:1 › API проверяет период семестра и повторное создание пары (96ms)
+  ok 23 frontend\tests\schedule.spec.ts:141:1 › сбой расписания оставляет доступным обычный календарь (825ms)
+
+  23 passed (26.6s)
+Exit code: 0

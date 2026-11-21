@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,6 +22,8 @@ class LessonFields(BaseModel):
     endTime: ClockTime
     termStart: str
     termEnd: str
+    weekInterval: Literal[1, 2] = 1
+    firstDate: str | None = None
 
 
 class CreateLesson(LessonFields):
@@ -35,6 +37,10 @@ def validate_lesson(fields):
         invalid("termEnd", "Конец семестра раньше начала.")
     if (fields.weekday - start.isoweekday()) % 7 > (end - start).days:
         invalid("termEnd", "В этом периоде нет выбранного дня недели.")
+    if fields.firstDate is not None:
+        first = calendar_date(fields.firstDate, "firstDate")
+        if not start <= first <= end or first.isoweekday() != fields.weekday:
+            invalid("firstDate", "Первая пара должна быть в семестре и выпадать на выбранный день недели.")
     if fields.endTime <= fields.startTime:
         invalid("endTime", "Окончание пары должно быть позже начала.")
 
@@ -55,6 +61,8 @@ def list_lessons(start_raw: str = Query(alias="from"), end_raw: str = Query(alia
     with connect() as db:
         rows = db.execute(
             """SELECT * FROM lessons WHERE termStart <= ? AND termEnd >= ?
+               AND (id NOT GLOB 'demo-lesson-*'
+                    OR NOT EXISTS (SELECT 1 FROM lessons WHERE id GLOB 'itmo-202611*'))
                ORDER BY startTime, endTime, subject, id""",
             (end_raw, start_raw),
         ).fetchall()
@@ -65,7 +73,8 @@ def list_lessons(start_raw: str = Query(alias="from"), end_raw: str = Query(alia
 def create_lesson(fields: CreateLesson):
     validate_lesson(fields)
     data = fields.model_dump()
-    payload = json.dumps(data, sort_keys=True)
+    replay_data = {key: value for key, value in data.items() if (key, value) not in (("weekInterval", 1), ("firstDate", None))}
+    payload = json.dumps(replay_data, sort_keys=True)
     with connect() as db:
         db.execute("BEGIN IMMEDIATE")
         operation = db.execute(
@@ -79,8 +88,8 @@ def create_lesson(fields: CreateLesson):
             raise HTTPException(409, "Этот идентификатор уже занят.")
 
         db.execute(
-            """INSERT INTO lessons (id, weekday, subject, room, startTime, endTime, termStart, termEnd)
-               VALUES (:id, :weekday, :subject, :room, :startTime, :endTime, :termStart, :termEnd)""",
+            """INSERT INTO lessons (id, weekday, subject, room, startTime, endTime, termStart, termEnd, weekInterval, firstDate)
+               VALUES (:id, :weekday, :subject, :room, :startTime, :endTime, :termStart, :termEnd, :weekInterval, :firstDate)""",
             data,
         )
         db.execute("INSERT INTO lesson_operations (id, payload) VALUES (?, ?)", (fields.id, payload))
@@ -93,7 +102,8 @@ def update_lesson(lesson_id: str, fields: LessonFields):
     with connect() as db:
         result = db.execute(
             """UPDATE lessons SET weekday=:weekday, subject=:subject, room=:room,
-               startTime=:startTime, endTime=:endTime, termStart=:termStart, termEnd=:termEnd
+               startTime=:startTime, endTime=:endTime, termStart=:termStart, termEnd=:termEnd,
+               weekInterval=:weekInterval, firstDate=:firstDate
                WHERE id=:id""",
             {**fields.model_dump(), "id": lesson_id},
         )

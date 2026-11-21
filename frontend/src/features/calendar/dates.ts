@@ -52,7 +52,7 @@ const plurals: Record<Kind, [string, string, string]> = {
   deadline: ['дедлайн', 'дедлайна', 'дедлайнов'],
   event: ['событие', 'события', 'событий'],
   birthday: ['день рождения', 'дня рождения', 'дней рождения'],
-  step: ['шаг', 'шага', 'шагов'],
+  step: ['запланированный шаг', 'запланированных шага', 'запланированных шагов'],
 };
 const plural = new Intl.PluralRules('ru');
 
@@ -70,7 +70,8 @@ export function monthSummary(items: CalendarItem[], start: string, end: string) 
 }
 
 export function itemKey(item: CalendarItem) {
-  return item.kind + ':' + item.id + (item.kind === 'birthday' ? ':' + item.startDate.slice(0, 4) : '');
+  return item.kind + ':' + item.id + (item.occurrenceDate ? ':' + item.occurrenceDate
+    : item.kind === 'birthday' ? ':' + item.startDate.slice(0, 4) : '');
 }
 
 export function dayTime(item: CalendarItem, day: string) {

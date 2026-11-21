@@ -31,8 +31,10 @@ export function Agenda({
   );
 
   return <Card component="aside" withBorder radius="lg" className={styles.agenda} aria-label="Повестка">
-    <h2 id="agenda-date" tabIndex={-1} aria-label={fullDate(day)}>{longDate(day)}</h2>
-    <p className={styles.agendaLabel}>Повестка дня</p>
+    <div className={styles.agendaHead}>
+      <p className={styles.agendaLabel}>Повестка дня</p>
+      <h2 id="agenda-date" tabIndex={-1} aria-label={fullDate(day)}>{longDate(day)}</h2>
+    </div>
     {loading && <Stack gap="xs" aria-label="Загрузка записей" role="status">
       <Skeleton height={24} width="65%" /><Skeleton height={75} />
     </Stack>}

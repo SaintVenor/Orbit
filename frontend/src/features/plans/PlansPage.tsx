@@ -3,12 +3,34 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from '../../app/Header';
 import { useDialog } from '../../app/useDialog';
 import { useLoad } from '../../app/useLoad';
+import { PlanCover } from './PlanCover';
 import { PlanEditor } from './PlanEditor';
-import { planApi, type Motif } from './planApi';
+import { planApi, type PlanCard } from './planApi';
 import styles from './plans.module.css';
 
-export function Cover({ motif }: { motif: Motif }) {
-  return <div className={styles.cover} data-motif={motif} aria-hidden="true" />;
+function PlanGroup({ title, plans, state }: { title: string; plans: PlanCard[]; state: unknown }) {
+  return <section className={styles.planGroup} aria-label={title}>
+    <h2>{title} <span>{plans.length}</span></h2>
+    <div className={styles.gallery}>
+      {plans.map(plan => {
+        const href = '/plans/' + encodeURIComponent(plan.id);
+        const done = plan.steps.filter(step => step.done).length;
+        const next = plan.steps.find(step => !step.done);
+        return <Card className={styles.card} key={plan.id} withBorder padding="lg" radius="lg">
+          <PlanCover motif={plan.motif} cover={plan.cover} />
+          <h3><Link className={styles.cardLink} to={href} state={state}>{plan.title}</Link></h3>
+          <div className={styles.cardProgress}>
+            <progress aria-label="Прогресс плана" value={done} max={plan.steps.length || 1} />
+            <span>{done} из {plan.steps.length}</span>
+          </div>
+          {next ? <p className={styles.next}><span>Далее</span> <strong>{next.title}</strong></p>
+            : plan.steps.length ? <p className={styles.next}>Все шаги выполнены</p>
+              : <Button className={styles.firstStep} component={Link} to={href + '?add=step'} state={state}
+                variant="light" size="compact-sm">Добавить первый шаг</Button>}
+        </Card>;
+      })}
+    </div>
+  </section>;
 }
 
 export function PlansPage() {
@@ -16,6 +38,9 @@ export function PlansPage() {
   const location = useLocation();
   const dialog = useDialog<true>();
   const { data, loading, failed, refresh } = useLoad(planApi.list);
+  const finished = (plan: PlanCard) => plan.steps.length > 0 && plan.steps.every(step => step.done);
+  const pending = data?.items.filter(plan => !finished(plan)) ?? [];
+  const completed = data?.items.filter(finished) ?? [];
 
   return <>
     <Header />
@@ -29,21 +54,8 @@ export function PlansPage() {
         Не удалось загрузить планы. <Button variant="subtle" size="compact-sm" onClick={refresh}>Повторить</Button>
       </Alert>}
       {data?.items.length === 0 && <p>Планов пока нет.</p>}
-      <div className={styles.gallery}>
-        {data?.items.map(plan => {
-          const href = '/plans/' + encodeURIComponent(plan.id);
-          const done = plan.steps.filter(step => step.done).length;
-          const next = plan.steps.find(step => !step.done);
-          return <Card className={styles.card} key={plan.id} withBorder padding="lg" radius="lg">
-            <Cover motif={plan.motif} />
-            <h2><Link to={href} state={location.state}>{plan.title}</Link></h2>
-            <p className={styles.counter}>{done} из {plan.steps.length}</p>
-            <p className={styles.next}>{plan.steps.length === 0
-              ? <Link to={href + '?add=step'} state={location.state}>Добавить первый шаг</Link>
-              : next?.title ?? 'Все шаги выполнены'}</p>
-          </Card>;
-        })}
-      </div>
+      {data && <PlanGroup title="Запланированные" plans={pending} state={location.state} />}
+      {data && <PlanGroup title="Выполненные" plans={completed} state={location.state} />}
     </main>
     {dialog.value && <PlanEditor mode={{ kind: 'plan', saved: plan => {
       dialog.close();

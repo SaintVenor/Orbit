@@ -1,6 +1,6 @@
 import { getISODay } from 'date-fns';
 import { json, request } from '../../app/api';
-import { asDate } from './dates';
+import { asDate, daysBetween, moveDay } from './dates';
 
 export interface LessonFields {
   weekday: number;
@@ -10,6 +10,8 @@ export interface LessonFields {
   endTime: string;
   termStart: string;
   termEnd: string;
+  weekInterval?: 1 | 2;
+  firstDate?: string | null;
 }
 
 export interface Lesson extends LessonFields {
@@ -18,9 +20,17 @@ export interface Lesson extends LessonFields {
 
 export const weekdays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
+export function firstLessonDate(lesson: LessonFields) {
+  return lesson.firstDate ?? moveDay(lesson.termStart, (lesson.weekday - getISODay(asDate(lesson.termStart)) + 7) % 7);
+}
+
 export function lessonsOn(items: Lesson[], day: string) {
   const weekday = getISODay(asDate(day));
-  return items.filter(item => item.weekday === weekday && item.termStart <= day && day <= item.termEnd);
+  return items.filter(item => {
+    if (item.weekday !== weekday || item.termStart > day || day > item.termEnd) return false;
+    const elapsed = daysBetween(day, firstLessonDate(item));
+    return elapsed >= 0 && elapsed % (7 * (item.weekInterval ?? 1)) === 0;
+  });
 }
 
 const plural = new Intl.PluralRules('ru');

@@ -6,6 +6,7 @@ export interface PlanFields {
   title: string;
   area: Area;
   note: string;
+  cover?: string | null;
 }
 
 interface Plan extends PlanFields {
@@ -64,6 +65,15 @@ export const planApi = {
   },
   edit(id: string, fields: PlanFields) {
     return request<PlanDetail>(planPath(id), json('PATCH', fields));
+  },
+  removePlan(id: string) {
+    return request<void>(planPath(id), { method: 'DELETE' });
+  },
+  removeStep(id: string) {
+    return request<void>('/steps/' + encodeURIComponent(id), { method: 'DELETE' });
+  },
+  reorder(planId: string, ids: string[]) {
+    return request<PlanDetail>(planPath(planId) + '/steps/order', json('PUT', { ids }));
   },
   available(signal: AbortSignal) {
     return request<{ items: AvailableStep[] }>('/steps?unscheduled=true&done=false', { signal });

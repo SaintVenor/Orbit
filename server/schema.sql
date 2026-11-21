@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS lessons (
     startTime TEXT NOT NULL,
     endTime TEXT NOT NULL CHECK (endTime > startTime),
     termStart TEXT NOT NULL,
-    termEnd TEXT NOT NULL CHECK (termEnd >= termStart)
+    termEnd TEXT NOT NULL CHECK (termEnd >= termStart),
+    weekInterval INTEGER NOT NULL DEFAULT 1 CHECK (weekInterval IN (1, 2)),
+    firstDate TEXT
 );
 
 CREATE INDEX IF NOT EXISTS lesson_term ON lessons (termStart, termEnd);
@@ -68,4 +70,22 @@ CREATE INDEX IF NOT EXISTS lesson_term ON lessons (termStart, termEnd);
 CREATE TABLE IF NOT EXISTS lesson_operations (
     id TEXT PRIMARY KEY,
     payload TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS entry_series (
+    entry_id TEXT PRIMARY KEY REFERENCES entries(id) ON DELETE CASCADE,
+    frequency TEXT CHECK (frequency IN ('daily', 'weekly', 'monthly', 'yearly')),
+    active_from TEXT,
+    active_until TEXT
+);
+
+CREATE TABLE IF NOT EXISTS skipped_occurrences (
+    entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    PRIMARY KEY (entry_id, day)
+);
+
+CREATE TABLE IF NOT EXISTS plan_covers (
+    plan_id TEXT PRIMARY KEY REFERENCES plans(id) ON DELETE CASCADE,
+    cover TEXT NOT NULL
 );

@@ -1,0 +1,15 @@
+
+> orbit-calendar@0.1.0 seed
+> node scripts/orbit.mjs seed --date 2026-11-20
+
+Demo seed: 2026-11-20, trip 2026-11-27 .. 2026-12-02
+desktop 1440×900 OK
+mobile 390×844 OK
+
+> orbit-calendar@0.1.0 import-schedule
+> node scripts/orbit.mjs import-schedule
+
+Imported 29 of 29 class sessions.
+desktop 1440×900 OK
+mobile 390×844 OK
+Exit code: 0

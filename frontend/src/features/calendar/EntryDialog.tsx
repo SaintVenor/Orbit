@@ -1,6 +1,6 @@
 import { Alert, Button, Checkbox, Modal, NativeSelect, TextInput } from '@mantine/core';
 import { useRef, useState, type FormEvent } from 'react';
-import { api, ApiError, type Area, type CalendarItem, type EntryFields, type EntryKind } from '../../app/api';
+import { api, ApiError, type Area, type CalendarItem, type DeletionScope, type EntryFields, type EntryKind, type Frequency } from '../../app/api';
 import { asDate, isDateKey, kindLabels } from './dates';
 import styles from './calendar.module.css';
 
@@ -15,22 +15,24 @@ interface Draft {
   allDay: boolean;
   birthMonth: string;
   birthDay: string;
+  frequency: Frequency | '';
 }
 
 function initialDraft(day: string, item?: CalendarItem): Draft {
-  const start = item?.startDate ?? day;
+  const start = item?.seriesStart ?? item?.startDate ?? day;
   const date = asDate(start);
   return {
     kind: item?.kind as EntryKind ?? 'event',
     title: item?.title ?? '',
     area: item?.area ?? 'personal',
     startDate: start,
-    endDate: item?.endDate ?? start,
+    endDate: item?.seriesEnd ?? item?.endDate ?? start,
     startTime: item?.startTime ?? '',
     endTime: item?.endTime ?? '',
     allDay: !item?.startTime,
     birthMonth: String(date.getMonth() + 1),
     birthDay: String(date.getDate()),
+    frequency: item?.frequency ?? '',
   };
 }
 
@@ -76,6 +78,7 @@ function entryFields(draft: Draft): EntryFields {
     endTime: event && !draft.allDay ? draft.endTime : null,
     birthMonth: birthday ? Number(draft.birthMonth) : null,
     birthDay: birthday ? Number(draft.birthDay) : null,
+    frequency: birthday ? null : draft.frequency || null,
   };
 }
 
@@ -93,6 +96,7 @@ export function EntryDialog({ day, item, onClose, onSaved, onDeleted }: Props) {
   const [failure, setFailure] = useState('');
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [scope, setScope] = useState<DeletionScope>('one');
   const editedEnd = useRef(Boolean(item && item.startDate !== item.endDate));
   const locked = useRef(false);
   const formElement = useRef<HTMLFormElement>(null);
@@ -164,7 +168,7 @@ export function EntryDialog({ day, item, onClose, onSaved, onDeleted }: Props) {
     setPending(true);
     setFailure('');
     try {
-      await api.deleteEntry(item.id);
+      await api.deleteEntry(item.id, item.occurrenceDate ? scope : 'all', item.occurrenceDate);
       onDeleted();
     } catch (error) {
       showFailure(error);
@@ -188,9 +192,14 @@ export function EntryDialog({ day, item, onClose, onSaved, onDeleted }: Props) {
   >
     {failure && <Alert color="red" role="alert" className={styles.alert}>{failure}</Alert>}
     {confirm ? <>
-      <p>{item?.kind === 'event' && item.startDate !== item.endDate
-        ? 'Будет удалено всё событие «' + item.title + '» со всех дней диапазона.'
-        : 'Запись «' + item?.title + '» будет удалена.'}</p>
+      {item?.occurrenceDate ? <NativeSelect label="Что удалить" value={scope} disabled={pending}
+        data={[
+          { value: 'one', label: 'Только это повторение' }, { value: 'before', label: 'Это и все предыдущие' },
+          { value: 'after', label: 'Это и все следующие' }, { value: 'all', label: 'Всю серию' },
+        ]} onChange={event => setScope(event.currentTarget.value as DeletionScope)} />
+        : <p>{item?.kind === 'event' && item.startDate !== item.endDate
+          ? 'Будет удалено всё событие «' + item.title + '» со всех дней диапазона.'
+          : 'Запись «' + item?.title + '» будет удалена.'}</p>}
       <div className={styles.formActions}>
         <Button variant="default" disabled={pending} onClick={() => { setConfirm(false); setFailure(''); }}>Назад</Button>
         <Button color="red" loading={pending} onClick={remove}>Удалить запись</Button>
@@ -205,6 +214,14 @@ export function EntryDialog({ day, item, onClose, onSaved, onDeleted }: Props) {
       <NativeSelect label="Сфера" name="area" value={draft.area}
         data={[{ value: 'personal', label: 'Личное' }, { value: 'study', label: 'Учёба' }]}
         disabled={pending} onChange={event => change('area', event.currentTarget.value as Area)} />
+      {draft.kind === 'birthday' ? <p className={styles.repeatHint}>День рождения повторяется каждый год.</p>
+        : <NativeSelect label="Повторение" value={draft.frequency} disabled={pending}
+          data={[
+            { value: '', label: 'Без повторения' }, { value: 'daily', label: 'Каждый день' },
+            { value: 'weekly', label: 'Каждую неделю' }, { value: 'monthly', label: 'Каждый месяц' },
+            { value: 'yearly', label: 'Каждый год' },
+          ]} onChange={event => change('frequency', event.currentTarget.value as Frequency | '')} />}
+      {item?.occurrenceDate && <p className={styles.repeatHint}>Изменения формы применяются ко всей серии.</p>}
       {draft.kind === 'birthday' ? <div className={styles.pair}>
         <TextInput label="День" type="number" name="birthDay" required min={1} max={31}
           value={draft.birthDay} readOnly={pending} error={errors.birthDay}

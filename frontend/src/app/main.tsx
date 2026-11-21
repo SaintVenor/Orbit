@@ -14,7 +14,7 @@ import { calendarVariables, theme } from './theme';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider theme={theme} cssVariablesResolver={calendarVariables} forceColorScheme="light">
+    <MantineProvider theme={theme} cssVariablesResolver={calendarVariables} defaultColorScheme="light">
       <BrowserRouter>
         <Routes>
           <Route path="/calendar" element={<CalendarPage />} />

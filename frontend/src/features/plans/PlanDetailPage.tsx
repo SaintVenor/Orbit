@@ -1,13 +1,13 @@
-import { Alert, Button, Card, Checkbox, Skeleton } from '@mantine/core';
+import { Alert, Button, Card, Checkbox, Modal, Skeleton } from '@mantine/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Header } from '../../app/Header';
 import { useDialog } from '../../app/useDialog';
 import { useLoad } from '../../app/useLoad';
 import { useMutation } from '../../app/useMutation';
 import { fullDate } from '../calendar/dates';
 import { PlanEditor } from './PlanEditor';
-import { Cover } from './PlansPage';
+import { PlanCover } from './PlanCover';
 import { planApi, type PlanDetail, type Resource, type Step } from './planApi';
 import styles from './plans.module.css';
 
@@ -20,7 +20,34 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
   const dialog = useDialog<Editor>();
   const { open } = dialog;
   const addStepButton = useRef<HTMLButtonElement>(null);
-  const { busy, error, submit } = useMutation();
+  const { busy, error, submit, isLocked, clearError } = useMutation();
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const removal = useDialog<Step | 'plan'>();
+  const dragged = useRef<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
+  function moveStep(id: string, destination: number) {
+    const ids = plan.steps.map(step => step.id);
+    const source = ids.indexOf(id);
+    if (source === -1 || destination < 0 || destination >= ids.length || source === destination) return;
+    ids.splice(source, 1);
+    ids.splice(destination, 0, id);
+    void submit(() => planApi.reorder(plan.id, ids), setPlan);
+  }
+
+  function remove() {
+    const target = removal.value;
+    if (target === 'plan') {
+      void submit(() => planApi.removePlan(plan.id), () => navigate('/plans', { state, replace: true }));
+    } else if (target) {
+      void submit(() => planApi.removeStep(target.id), () => {
+        setPlan(current => ({ ...current, steps: current.steps.filter(step => step.id !== target.id) }));
+        removal.close();
+        requestAnimationFrame(() => addStepButton.current?.focus());
+      });
+    }
+  }
 
   useEffect(() => {
     if (addFirstStep) open({ kind: 'step' }, addStepButton.current);
@@ -53,10 +80,13 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
 
   return <>
     <Card component="article" withBorder radius="lg" className={styles.detail}>
-      <Cover motif={plan.motif} />
+      <PlanCover motif={plan.motif} cover={plan.cover} />
       <div className={styles.heading}>
         <h1>{plan.title}</h1>
-        <Button variant="default" disabled={busy} onClick={() => dialog.open({ kind: 'plan' })}>Редактировать план</Button>
+        <div className={styles.rowActions}>
+          <Button variant="default" disabled={busy} onClick={() => dialog.open({ kind: 'plan' })}>Редактировать план</Button>
+          <Button variant="subtle" color="red" disabled={busy} onClick={() => { clearError(); removal.open('plan'); }}>Удалить план</Button>
+        </div>
       </div>
       {plan.note && <p className={styles.note}>{plan.note}</p>}
       <div className={styles.progress}>
@@ -73,8 +103,22 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
           </Button>
         </div>
         {plan.steps.length > 0 && <ol className={styles.list}>
-          {plan.steps.map(step => <li className={styles.row} key={step.id}>
-            <div>
+          {plan.steps.map((step, index) => <li className={styles.row} key={step.id} data-drop={dropTarget === step.id || undefined}
+            onDragOver={event => { if (dragged.current) { event.preventDefault(); setDropTarget(step.id); } }}
+            onDrop={event => {
+              event.preventDefault();
+              if (dragged.current) moveStep(dragged.current, index);
+              dragged.current = null;
+              setDropTarget(null);
+            }}>
+            <div className={styles.stepContent}>
+              <span className={styles.handle} aria-hidden="true" draggable={!busy}
+                onDragStart={event => {
+                  dragged.current = step.id;
+                  event.dataTransfer.setData('text/plain', step.id);
+                  event.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => { dragged.current = null; setDropTarget(null); }}>⠿</span>
               <Checkbox label={step.title} checked={step.done} disabled={busy}
                 onChange={event => {
                   const done = event.currentTarget.checked;
@@ -84,8 +128,16 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
                 {fullDate(step.scheduledDate)}
               </Link>}
             </div>
-            <Button size="compact-sm" variant="default" disabled={busy} onClick={() => dialog.open({ kind: 'step', step })}
-              aria-label={'Редактировать шаг «' + step.title + '»'}>Редактировать</Button>
+            <div className={styles.rowActions}>
+              <Button size="compact-sm" variant="subtle" disabled={busy || index === 0}
+                aria-label={'Поднять шаг «' + step.title + '»'} onClick={() => moveStep(step.id, index - 1)}>↑</Button>
+              <Button size="compact-sm" variant="subtle" disabled={busy || index === plan.steps.length - 1}
+                aria-label={'Опустить шаг «' + step.title + '»'} onClick={() => moveStep(step.id, index + 1)}>↓</Button>
+              <Button size="compact-sm" variant="default" disabled={busy} onClick={() => dialog.open({ kind: 'step', step })}
+                aria-label={'Редактировать шаг «' + step.title + '»'}>Править</Button>
+              <Button size="compact-sm" variant="subtle" color="red" disabled={busy}
+                aria-label={'Удалить шаг «' + step.title + '»'} onClick={() => { clearError(); removal.open(step); }}>Удалить</Button>
+            </div>
           </li>)}
         </ol>}
       </section>
@@ -108,6 +160,18 @@ function PlanContent({ initial }: { initial: PlanDetail }) {
         </ul>}
       </section>
     </Card>
+    {removal.value && <Modal opened centered title={removal.value === 'plan' ? 'Удалить план?' : 'Удалить шаг?'}
+      closeButtonProps={{ 'aria-label': 'Закрыть' }} closeOnEscape={!busy} closeOnClickOutside={!busy}
+      onClose={() => { if (!isLocked()) { clearError(); removal.close(); } }}>
+      <p>{removal.value === 'plan'
+        ? 'План, шаги, связанные записи в календаре и материалы будут удалены.'
+        : 'Шаг и связанная запись в календаре будут удалены.'}</p>
+      {error && <Alert role="alert" color="red">{error.message}</Alert>}
+      <div className={styles.rowActions}>
+        <Button variant="default" disabled={busy} onClick={removal.close}>Отмена</Button>
+        <Button color="red" loading={busy} onClick={remove}>Подтвердить удаление</Button>
+      </div>
+    </Modal>}
     {editing?.kind === 'plan' && <PlanEditor mode={{ kind: 'plan', plan, saved: saved => { setPlan(saved); close(); } }} onClose={close} />}
     {editing?.kind === 'step' && <PlanEditor mode={{ kind: 'step', planId: plan.id, step: editing.step,
       saved: step => { updateStep(step); close(); } }} onClose={close} />}

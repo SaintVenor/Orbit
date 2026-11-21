@@ -22,6 +22,7 @@ class PlanFields(Fields):
     area: Literal["study", "personal"] = "personal"
     note: str = Field(default="", max_length=4000)
     motif: Motif | None = None
+    cover: str | None = Field(None, max_length=560000, pattern=r"^(?:dawn|rings|reef|atlas|comet|field|data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2})$")
 
 
 class StepFields(Fields):
@@ -51,8 +52,19 @@ def transaction():
         yield db
 
 
+PLAN_SELECT = "SELECT p.*, c.cover FROM plans p LEFT JOIN plan_covers c ON c.plan_id = p.id"
+
+
+def save_cover(db, plan_id, cover):
+    if cover:
+        db.execute("""INSERT INTO plan_covers VALUES (?, ?)
+                      ON CONFLICT(plan_id) DO UPDATE SET cover = excluded.cover""", (plan_id, cover))
+    else:
+        db.execute("DELETE FROM plan_covers WHERE plan_id = ?", (plan_id,))
+
+
 def read_plan(db, plan_id):
-    row = db.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+    row = db.execute(PLAN_SELECT + " WHERE p.id = ?", (plan_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "План не найден.")
     return dict(row)
@@ -139,7 +151,7 @@ def list_plans():
         db.execute("BEGIN")
         plans = {
             row["id"]: {**dict(row), "steps": []}
-            for row in db.execute("SELECT * FROM plans ORDER BY rowid")
+            for row in db.execute(PLAN_SELECT + " ORDER BY p.rowid")
         }
         for row in db.execute("SELECT plan_id, title, done FROM steps ORDER BY plan_id, position"):
             plans[row["plan_id"]]["steps"].append({"title": row["title"], "done": bool(row["done"])})
@@ -156,6 +168,8 @@ def get_plan(plan_id: str):
 @router.post("/plans", status_code=201)
 def create_plan(fields: CreatePlan):
     data = fields.model_dump()
+    if data["cover"] is None:
+        data.pop("cover")
     with transaction() as db:
         if not replay(db, "plan", fields.id, data):
             require_free_id(db, "plans", fields.id)
@@ -165,6 +179,7 @@ def create_plan(fields: CreatePlan):
                 "INSERT INTO plans (id, title, area, note, motif) VALUES (:id, :title, :area, :note, :motif)",
                 {**data, "motif": motif},
             )
+            save_cover(db, fields.id, fields.cover)
         return detailed_plan(db, fields.id)
 
 
@@ -177,6 +192,34 @@ def update_plan(plan_id: str, changes: dict):
         db.execute(
             "UPDATE plans SET title=:title, area=:area, note=:note, motif=:motif WHERE id=:id",
             {**fields.model_dump(), "motif": fields.motif or current["motif"], "id": plan_id},
+        )
+        save_cover(db, plan_id, fields.cover)
+        return detailed_plan(db, plan_id)
+
+
+@router.delete("/plans/{plan_id}", status_code=204)
+def delete_plan(plan_id: str):
+    with transaction() as db:
+        read_plan(db, plan_id)
+        db.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+    return Response(status_code=204)
+
+
+class StepOrder(Fields):
+    ids: list[Id]
+
+
+@router.put("/plans/{plan_id}/steps/order")
+def reorder_steps(plan_id: str, fields: StepOrder):
+    with transaction() as db:
+        plan = detailed_plan(db, plan_id)
+        expected = {step["id"] for step in plan["steps"]}
+        if len(fields.ids) != len(expected) or set(fields.ids) != expected:
+            raise HTTPException(409, "Список шагов изменился. Откройте план заново.")
+        db.execute("UPDATE steps SET position = -position WHERE plan_id = ?", (plan_id,))
+        db.executemany(
+            "UPDATE steps SET position = ? WHERE id = ? AND plan_id = ?",
+            [(index, step_id, plan_id) for index, step_id in enumerate(fields.ids, 1)],
         )
         return detailed_plan(db, plan_id)
 
@@ -227,6 +270,14 @@ def update_step(step_id: str, changes: dict):
             {**fields.model_dump(), "id": step_id},
         )
         return read_step(db, step_id)
+
+
+@router.delete("/steps/{step_id}", status_code=204)
+def delete_step(step_id: str):
+    with transaction() as db:
+        read_step(db, step_id)
+        db.execute("DELETE FROM steps WHERE id = ?", (step_id,))
+    return Response(status_code=204)
 
 
 @router.post("/plans/{plan_id}/resources", status_code=201)

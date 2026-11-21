@@ -5,6 +5,7 @@ import { useLoad } from '../../app/useLoad';
 import { useMutation } from '../../app/useMutation';
 import { planApi, type AvailableStep } from '../plans/planApi';
 import { fullDate } from './dates';
+import styles from './calendar.module.css';
 
 interface Props {
   day: string;
@@ -46,6 +47,7 @@ export function StepPicker({ day, calendarHref, onClose, onAssigned }: Props) {
       {[...groups].map(([planId, steps]) => <Stack key={planId} gap={6}>
         <Text size="sm" c="var(--muted)">{steps[0].planTitle}</Text>
         {steps.map(step => <Button key={step.id} variant="light" fullWidth disabled={busy}
+          classNames={{ root: styles.pickButton, label: styles.pickLabel }}
           onClick={() => assign(step)}>{step.title}</Button>)}
       </Stack>)}
       {busy && <Text size="sm" role="status">Назначаем шаг…</Text>}

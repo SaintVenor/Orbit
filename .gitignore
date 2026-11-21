@@ -6,3 +6,5 @@ __pycache__/
 frontend/dist/
 test-results/
 playwright-report/
+edits/
+/Orbit-frontend-review.zip

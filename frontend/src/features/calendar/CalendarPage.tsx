@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Button, NativeSelect, Switch } from '@mantine/core';
+import { ActionIcon, Alert, Button, NativeSelect, SegmentedControl, Switch } from '@mantine/core';
 import { addMonths, format, getISODay } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -13,9 +13,10 @@ import { Agenda } from './Agenda';
 import { EntryDialog } from './EntryDialog';
 import { MonthGrid } from './MonthGrid';
 import { LessonDialog } from './LessonDialog';
-import { lessonApi, lessonsOn, type Lesson } from './lessons';
+import { firstLessonDate, lessonApi, lessonsOn, type Lesson } from './lessons';
+import { WeekView } from './WeekView';
 import { StepPicker } from './StepPicker';
-import { asDate, birthdayInViewYear, dateKey, isDateKey, kindLabels, monthDays, monthKey, monthSummary, moveDay } from './dates';
+import { asDate, birthdayInViewYear, dateKey, daysBetween, isDateKey, kindLabels, longDate, monthDays, monthKey, monthSummary, moveDay, shortDate } from './dates';
 import styles from './calendar.module.css';
 
 interface LoadedCalendar {
@@ -62,6 +63,14 @@ export function CalendarPage() {
   const month = candidate?.days.includes(selected) && monthDate ? asDate(monthDate) : defaultMonth;
   const range = monthDays(month);
   const monthId = monthKey(month);
+  const weekly = query.get('view') === 'week';
+  const monday = moveDay(selected, 1 - getISODay(asDate(selected)));
+  const week = Array.from({ length: 7 }, (_, index) => moveDay(monday, index));
+  const weekTitle = week[0].slice(0, 7) === week[6].slice(0, 7)
+    ? asDate(week[0]).getDate() + '–' + longDate(week[6])
+    : shortDate(week[0]) + ' — ' + shortDate(week[6]);
+  const weekYear = week[0].slice(0, 4) === week[6].slice(0, 4)
+    ? week[0].slice(0, 4) : week[0].slice(0, 4) + '/' + week[6].slice(0, 4);
   const { items, loading, failed, refresh } = useCalendar(range.from, range.to);
   const [area, setArea] = useState<Area | ''>('');
   const [kind, setKind] = useState<Kind | ''>('');
@@ -80,11 +89,12 @@ export function CalendarPage() {
   const stepAction = useMutation();
   const filtered = Boolean(area || kind);
   const visible = items.filter(item => (!area || item.area === area) && (!kind || item.kind === kind));
-  const summary = monthSummary(visible, range.first, range.last);
+  const summary = monthSummary(visible, weekly ? week[0] : range.first, weekly ? week[6] : range.last);
 
   function go(day: string, view = day.slice(0, 7)) {
     const next = new URLSearchParams({ date: day });
     if (!day.startsWith(view)) next.set('month', view);
+    if (weekly) next.set('view', 'week');
     setQuery(next);
     setNotice('');
     stepAction.clearError();
@@ -100,7 +110,8 @@ export function CalendarPage() {
   }
 
   function shift(offset: number) {
-    go(monthKey(addMonths(month, offset)) + '-01');
+    if (weekly) go(moveDay(selected, offset * 7));
+    else go(monthKey(addMonths(month, offset)) + '-01');
   }
 
   function clearFilters() {
@@ -121,7 +132,7 @@ export function CalendarPage() {
     closeDialog();
     if (record.kind === 'birthday' && record.birthMonth && record.birthDay) {
       select(birthdayInViewYear(selected, record.birthMonth, record.birthDay));
-    } else if (record.startDate && record.endDate && (selected < record.startDate || selected > record.endDate)) {
+    } else if ((!record.frequency || !dialog?.item?.occurrenceDate) && record.startDate && record.endDate && (selected < record.startDate || selected > record.endDate)) {
       select(record.startDate);
     }
     if ((area && area !== record.area) || (kind && kind !== record.kind)) clearFilters();
@@ -152,9 +163,10 @@ export function CalendarPage() {
   function savedLesson(lesson: Lesson) {
     lessonDialog.close();
     if (!lessonsOn([lesson], selected).length) {
-      const start = lesson.termStart > range.first ? lesson.termStart : range.first;
-      const next = moveDay(start, (lesson.weekday - getISODay(asDate(start)) + 7) % 7);
-      const first = moveDay(lesson.termStart, (lesson.weekday - getISODay(asDate(lesson.termStart)) + 7) % 7);
+      const first = firstLessonDate(lesson);
+      const interval = 7 * (lesson.weekInterval ?? 1);
+      const steps = Math.max(0, Math.ceil(daysBetween(range.first, first) / interval));
+      const next = moveDay(first, steps * interval);
       select(next <= lesson.termEnd ? next : first);
     }
     setNotice('Пара сохранена.');
@@ -168,16 +180,25 @@ export function CalendarPage() {
     <Header onAdd={add} />
     <main className="shell content">
       <div className={styles.heading}>
-        <div>
-          <h1>{format(month, 'LLLL', { locale: ru })} <span>{format(month, 'yyyy')}</span></h1>
-          <p className={styles.summary} aria-live="polite">{summary || (loading
-            ? 'Загрузка записей…' : failed ? '' : filtered ? 'Нет записей по выбранным фильтрам.' : 'В этом месяце пока нет записей.')}</p>
-        </div>
         <div className={styles.controls}>
-          <ActionIcon variant="default" size="lg" aria-label="Предыдущий месяц" onClick={() => shift(-1)}>‹</ActionIcon>
-          <ActionIcon variant="default" size="lg" aria-label="Следующий месяц" onClick={() => shift(1)}>›</ActionIcon>
+          <ActionIcon variant="default" size="lg" aria-label={weekly ? 'Предыдущая неделя' : 'Предыдущий месяц'} onClick={() => shift(-1)}>‹</ActionIcon>
+          <ActionIcon variant="default" size="lg" aria-label={weekly ? 'Следующая неделя' : 'Следующий месяц'} onClick={() => shift(1)}>›</ActionIcon>
           <Button variant="default" onClick={() => go(today)}>Сегодня</Button>
         </div>
+        <div className={styles.calendarTitle} data-week-title={weekly || undefined}>
+          <h1>{weekly ? weekTitle : format(month, 'LLLL', { locale: ru })} <span>{weekly ? weekYear : format(month, 'yyyy')}</span></h1>
+          <p className={styles.summary} aria-live="polite">{summary || (loading
+            ? 'Загрузка записей…' : failed ? '' : filtered ? 'Нет записей по выбранным фильтрам.'
+              : weekly ? 'На этой неделе пока нет записей.' : 'В этом месяце пока нет записей.')}</p>
+        </div>
+        <SegmentedControl aria-label="Вид календаря" value={weekly ? 'week' : 'month'}
+          data={[{ value: 'month', label: 'Месяц' }, { value: 'week', label: 'Неделя' }]}
+          onChange={value => {
+            const next = new URLSearchParams(query);
+            if (value === 'week') next.set('view', 'week');
+            else next.delete('view');
+            setQuery(next);
+          }} />
       </div>
       <div className={styles.filters}>
         <NativeSelect aria-label="Сфера" value={area}
@@ -200,9 +221,11 @@ export function CalendarPage() {
       {failed && <Alert color="red" role="alert" className={styles.alert}>
         Не удалось загрузить календарь. <Button variant="subtle" size="compact-sm" onClick={refresh}>Повторить</Button>
       </Alert>}
-      <div className={styles.layout}>
-        <MonthGrid days={range.days} month={monthId} today={today} selected={selected}
-          items={visible} lessonCounts={lessonCounts} onSelect={select} onAgenda={openAgenda} onOpen={open} />
+      <div className={styles.layout} data-week={weekly || undefined}>
+        {weekly ? <WeekView days={week} selected={selected} today={today} items={visible} lessons={lessons}
+          onSelect={select} onOpen={open} onLesson={lesson => lessonDialog.open(lesson)} />
+          : <MonthGrid days={range.days} month={monthId} today={today} selected={selected}
+            items={visible} lessonCounts={lessonCounts} onSelect={select} onAgenda={openAgenda} onOpen={open} />}
         <Agenda day={selected} items={visible} loading={loading && !items.length} failed={failed} filtered={filtered}
           calendarHref={calendarHref} onAdd={add} onOpen={open} onPick={() => picker.open(true)}
           onComplete={complete} stepPending={stepAction.busy}
