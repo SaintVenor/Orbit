@@ -51,3 +51,21 @@ CREATE TABLE IF NOT EXISTS plan_operations (
     payload TEXT NOT NULL,
     PRIMARY KEY (kind, id)
 );
+
+CREATE TABLE IF NOT EXISTS lessons (
+    id TEXT PRIMARY KEY,
+    weekday INTEGER NOT NULL CHECK (weekday BETWEEN 1 AND 7),
+    subject TEXT NOT NULL,
+    room TEXT NOT NULL,
+    startTime TEXT NOT NULL,
+    endTime TEXT NOT NULL CHECK (endTime > startTime),
+    termStart TEXT NOT NULL,
+    termEnd TEXT NOT NULL CHECK (termEnd >= termStart)
+);
+
+CREATE INDEX IF NOT EXISTS lesson_term ON lessons (termStart, termEnd);
+
+CREATE TABLE IF NOT EXISTS lesson_operations (
+    id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);

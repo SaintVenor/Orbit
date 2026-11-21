@@ -7,11 +7,12 @@ interface Result<T> {
   failed: boolean;
 }
 
-export function useLoad<T>(load: (signal: AbortSignal) => Promise<T>) {
+export function useLoad<T>(load: (signal: AbortSignal) => Promise<T>, enabled = true) {
   const [key, refresh] = useReducer(value => value + 1, 0);
   const [result, setResult] = useState<Result<T>>();
 
   useEffect(() => {
+    if (!enabled) return;
     const controller = new AbortController();
     load(controller.signal).then(data => {
       if (!controller.signal.aborted) setResult({ key, load, data, failed: false });
@@ -19,8 +20,9 @@ export function useLoad<T>(load: (signal: AbortSignal) => Promise<T>) {
       if (!controller.signal.aborted) setResult({ key, load, failed: true });
     });
     return () => controller.abort();
-  }, [key, load]);
+  }, [enabled, key, load]);
 
-  const current = result?.load === load && result.key === key ? result : undefined;
-  return { data: current?.data, failed: current?.failed ?? false, loading: !current, refresh };
+  const sameSource = enabled && result?.load === load ? result : undefined;
+  const current = sameSource?.key === key ? sameSource : undefined;
+  return { data: sameSource?.data, failed: current?.failed ?? false, loading: enabled && !current, refresh };
 }

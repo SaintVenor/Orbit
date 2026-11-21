@@ -31,6 +31,12 @@ npm run dev
 
 На клавиатуре Tab ставит фокус на активную дату. Стрелки перемещают фокус, Enter выбирает день. Любую запись выбранного дня можно открыть из повестки. Escape закрывает диалог и возвращает фокус к кнопке открытия.
 
+## Учебные пары
+
+На календаре включите «Учебные пары». В демонстрационных данных на [27 ноября](http://127.0.0.1:5173/calendar?date=2026-11-27) видны три пары и поездка. Нажмите «3 пары» в ячейке, чтобы открыть повестку с предметами, временем и аудиторией.
+
+Кнопка «Добавить пару» открывает форму. Укажите день недели, время начала и конца, предмет, аудиторию и период семестра. Даты семестра включены в расписание. Из повестки пару можно отредактировать или удалить сразу для всех её повторений. При перезагрузке переключатель снова выключен. Записи о парах остаются в SQLite. Фильтры обычных записей и сводка месяца работают независимо от слоя.
+
 ## Макет и интерфейс
 
 [Кликабельный HTML-макет](design/prototype.html) открывается из файла. Панель «Состояния макета» переключает пустой день, выбор шага, заполненную форму, отправку, успех, ошибку и экран плана. Назначение и выполнение «Собрать черновик» можно пройти и обычными элементами интерфейса.
@@ -43,6 +49,8 @@ npm run dev
 | Галерея, три демоплана, 390×844 | [Макет](evidence/prototype-gallery-mobile.png) | [Галерея](evidence/gallery-mobile.png) |
 | План, `2 из 3`, 1440×900 | [Макет](evidence/prototype-plan-desktop.png) | [План](evidence/session-02-plan-desktop.png) |
 | План, `2 из 3`, 390×844 | [Макет](evidence/prototype-plan-mobile.png) | [План](evidence/session-02-plan-mobile.png) |
+| Учебные пары, 27 ноября, 1440×900 | [Макет](evidence/prototype-schedule-desktop.png) | [Расписание](evidence/schedule-desktop.png) |
+| Учебные пары, 27 ноября, 390×844 | [Макет](evidence/prototype-schedule-mobile.png) | [Расписание](evidence/schedule-mobile.png) |
 
 Макет использует системные шрифты для открытия из файла. В приложении локально поставляются Inter и PT Serif с кириллицей. В рабочей версии сводка календаря склоняется по-русски, полоса поездки отмечена на границе недели, в деталях плана есть действия редактирования и нативный индикатор прогресса. После сравнения снимков агент сгруппировал варианты выбора шага по плану и оставил кнопку правки рядом с длинным названием шага на телефоне.
 
@@ -51,9 +59,10 @@ npm run dev
 | `MantineProvider`, цвета, шрифты и радиусы | [Тема](frontend/src/app/theme.ts) |
 | `Button`, `ActionIcon`, `NativeSelect`, `Alert` | [Календарь](frontend/src/features/calendar/CalendarPage.tsx) |
 | `Card`, `Button`, `Skeleton` | [Повестка](frontend/src/features/calendar/Agenda.tsx), [галерея](frontend/src/features/plans/PlansPage.tsx) |
-| `Modal`, `TextInput`, `NativeSelect`, `Checkbox`, `Textarea` | [Записи](frontend/src/features/calendar/EntryDialog.tsx), [планы, шаги и материалы](frontend/src/features/plans/PlanEditor.tsx) |
+| `Modal`, `TextInput`, `NativeSelect`, `Checkbox`, `Textarea` | [Записи](frontend/src/features/calendar/EntryDialog.tsx), [планы, шаги и материалы](frontend/src/features/plans/PlanEditor.tsx), [учебные пары](frontend/src/features/calendar/LessonDialog.tsx) |
+| `Switch` | [Учебный слой](frontend/src/features/calendar/CalendarPage.tsx) |
 | CSS Grid, недельные сегменты, клавиатурная навигация | [Сетка месяца](frontend/src/features/calendar/MonthGrid.tsx) |
-| FastAPI, SQLite, проверка полей, календарная выборка | [Записи](server/main.py), [планы](server/plans.py), [схема](server/schema.sql) |
+| FastAPI, SQLite, проверка полей, календарная выборка | [Записи](server/main.py), [планы](server/plans.py), [учебные пары](server/lessons.py), [схема](server/schema.sql) |
 
 ## Как использовали AI
 
@@ -72,7 +81,7 @@ Playwright запускает отдельные FastAPI и Vite на тесто
 
 | Рубрика | Подтверждение |
 | --- | --- |
-| 1. AI-макет | HTML-экспорт, переключаемые состояния, исходный запрос и фактическая правка выше. [Прогон макета](evidence/session-02-prototype.log). |
+| 1. AI-макет | HTML-экспорт, переключаемые состояния, исходный запрос и фактическая правка выше. [Прогон макета](evidence/session-03-prototype.log). |
 | 2–3. Компоненты и тема | Ссылки на компоненты выше, общая тема Mantine и снимки календаря и планов. |
 | 4. Сценарий на реальном API | Назначение → reload → выполнение → `2 из 3`. [Выбор шага](evidence/session-02-step-picker.png), [выполненный шаг](evidence/session-02-step-completed.png), [тест](frontend/tests/plans-real.spec.ts). |
 | 5. Соответствие макету | Пары снимков на одинаковых данных указаны выше. |
@@ -82,6 +91,6 @@ Playwright запускает отдельные FastAPI и Vite на тесто
 | 10. Состояния и тестовые ответы | [Задержка](evidence/calendar-test-delay.png), [пустая выдача](evidence/calendar-test-empty.png), [ответ 500](evidence/calendar-test-error-500.png), [успех](evidence/calendar-test-success.png). Отдельно проверены пустой выбор шага и повтор после ошибки назначения. |
 | 11. Клиентский сценарий | Браузерный тест проверяет путь календарь → выбор → сохранение → выполнение → план с изменившимся прогрессом. |
 
-[Лог 14 проверок](evidence/session-02-tests.log) · [Сборка](evidence/session-02-build.log) · [Установка](evidence/session-02-setup.log) · [Запуск с фиксированными данными](evidence/session-02-dev.log) · [Рубрика практики](https://github.com/ai-course-avito/ITMOv2/blob/main/practices/practice_08/README.md).
+[Лог 17 проверок](evidence/session-03-tests.log) · [Сборка](evidence/session-03-build.log) · [Установка](evidence/session-02-setup.log) · [Запуск с фиксированными данными](evidence/session-03-dev.log) · [Рубрика практики](https://github.com/ai-course-avito/ITMOv2/blob/main/practices/practice_08/README.md).
 
-Две основные сессии завершили запланированный объём. Третья сессия в ТЗ отведена под визуальную доводку и необязательный слой учебных пар.
+В третьей сессии добавлен необязательный слой учебных пар. После просмотра снимков агент перенёс счётчик в свободную строку календаря. Если в ячейке уже есть «ещё N», счётчик занимает отдельную строку. [Тесты учебного слоя](frontend/tests/schedule.spec.ts).

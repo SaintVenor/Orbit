@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from pydantic import ValidationError
 
 from .db import connect, initialize
+from .lessons import router as lessons_router
 from .plans import router as plans_router
 from .entries import CreateEntry, EntryFields, calendar_date, invalid, normalize
 
@@ -18,6 +19,7 @@ async def lifespan(app):
 
 app = FastAPI(title="Орбита", lifespan=lifespan)
 app.include_router(plans_router)
+app.include_router(lessons_router)
 
 
 @app.get("/api/health")

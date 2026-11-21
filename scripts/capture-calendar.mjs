@@ -23,6 +23,16 @@ try {
       fullPage: true,
     });
     await capture('calendar');
+    const toggle = page.getByRole('switch', { name: 'Учебные пары' });
+    await expect(toggle).not.toBeChecked();
+    await toggle.check();
+    await page.getByRole('button', { name: '3 пары · пятница, 27 ноября 2026', exact: true }).click();
+    const agenda = page.getByRole('complementary', { name: 'Повестка' });
+    await expect(agenda.getByText('09:00–10:30 · Аудитория 2403')).toBeVisible();
+    await expect(agenda.getByRole('heading', { name: 'Поездка в Карелию' })).toBeVisible();
+    await expect(page.getByText('1 дедлайн · 1 событие · 1 день рождения', { exact: true })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    await capture('schedule');
     await page.getByRole('link', { name: 'Планы', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Собрать список книг' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Пройти маршрут вдоль залива' })).toBeVisible();

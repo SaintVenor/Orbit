@@ -180,7 +180,54 @@
     .week {
       position: relative;
       grid-auto-rows: 23px;
-      grid-template-rows: 34px repeat(3, 17px) 16px;
+      grid-template-rows: 34px repeat(3, 17px) var(--lesson-row, 16px);
+    }
+    .schedule-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .schedule-controls label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .lesson-count,
+    .lesson-entry {
+      background: #f0e9d0;
+      color: #53451e;
+    }
+    .schedule-controls input {
+      accent-color: var(--pine);
+    }
+    .lesson-count {
+      grid-row: 5;
+      z-index: 1;
+      align-self: center;
+      justify-self: start;
+      margin: 0 3px;
+      border: 0;
+      padding: 2px 5px;
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .lesson-group {
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+      margin-top: 12px;
+    }
+    .lesson-group h3 {
+      margin: 0 0 8px;
+      font:
+        20px Georgia,
+        serif;
+    }
+    .lesson-entry {
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow-wrap: anywhere;
     }
     .day {
       grid-row: 1/-1;
@@ -440,7 +487,15 @@
         padding: 5px;
       }
       .week {
-        grid-template-rows: 28px repeat(3, 5px) 2px;
+        grid-template-rows: 28px repeat(3, 5px) var(--lesson-row, 2px);
+      }
+      .week:has(.lesson-count) {
+        --lesson-row: 18px;
+      }
+      .lesson-count {
+        justify-self: center;
+        padding-inline: 2px;
+        font-size: 10px;
       }
       .day {
         padding: 2px;
@@ -547,6 +602,30 @@
       step: "Шаг плана",
     };
     const marks = { event: "◆", deadline: "⚑", birthday: "🎁", step: "✓" };
+    const lessonWeekdays = [
+      "Понедельник",
+      "Вторник",
+      "Среда",
+      "Четверг",
+      "Пятница",
+      "Суббота",
+      "Воскресенье",
+    ];
+    const lessons = [
+      ["Дискретная математика", "2403", "09:00", "10:30"],
+      ["Проектирование интерфейсов", "2312", "10:50", "12:20"],
+      ["Английский язык", "3104", "13:00", "14:30"],
+    ].map(([subject, room, startTime, endTime]) => ({
+      weekday: 5,
+      subject,
+      room,
+      startTime,
+      endTime,
+      termStart: "2026-09-01",
+      termEnd: "2026-12-31",
+    }));
+    let showLessons = false;
+
     let selected = "2026-11-28",
       month = 10,
       year = 2026,
@@ -595,6 +674,28 @@
           (!area || item.area === area) && (!kind || item.kind === kind),
       );
     }
+    const weekday = (day) => ((dateFrom(day).getUTCDay() + 6) % 7) + 1;
+    const lessonsOn = (day) =>
+      showLessons
+        ? lessons
+            .filter(
+              (item) =>
+                item.weekday === weekday(day) &&
+                item.termStart <= day &&
+                day <= item.termEnd,
+            )
+            .sort((a, b) => a.startTime.localeCompare(b.startTime))
+        : [];
+    const pluralLessons = new Intl.PluralRules("ru");
+    const lessonCount = (count) => {
+      const form = pluralLessons.select(count);
+      return (
+        count +
+        " " +
+        (form === "one" ? "пара" : form === "few" ? "пары" : "пар")
+      );
+    };
+
     function weekMarkup(days, items) {
       const spans = items.filter(
         (item) =>
@@ -663,6 +764,24 @@
           .filter((item) => item.from === item.to && days.includes(item.from))
           .map(segment)
           .join("") +
+        days
+          .map((day, index) => {
+            const count = lessonsOn(day).length;
+            return count
+              ? '<button class="lesson-count" style="grid-column:' +
+                  (index + 1) +
+                  '" data-date="' +
+                  day +
+                  '" aria-label="' +
+                  lessonCount(count) +
+                  " · " +
+                  formatDay(day) +
+                  '">' +
+                  lessonCount(count) +
+                  "</button>"
+              : "";
+          })
+          .join("") +
         "</div>"
       );
     }
@@ -726,6 +845,7 @@
       const dayItems = items.filter(
         (item) => item.from <= selected && item.to >= selected,
       );
+      const dayLessons = lessonsOn(selected);
       app.innerHTML =
         '<div class="top"><div><h1>' +
         months[month] +
@@ -744,7 +864,13 @@
         (area || kind
           ? '<button data-action="reset">Сбросить фильтры</button>'
           : "") +
-        "</div>" +
+        '<div class="schedule-controls"><label><input type="checkbox" id="show-lessons" ' +
+        (showLessons ? "checked" : "") +
+        ">Учебные пары</label>" +
+        (showLessons
+          ? '<button data-action="add-lesson">Добавить пару</button>'
+          : "") +
+        "</div></div>" +
         (notice ? '<p class="success" role="status">' + notice + "</p>" : "") +
         '<div class="layout"><section class="calendar" aria-label="Месяц"><div class="head">' +
         ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
@@ -783,8 +909,29 @@
               "</div>",
           )
           .join("") +
-        (!dayItems.length
+        (!dayItems.length && !dayLessons.length
           ? "<p>На этот день ничего не запланировано.</p>"
+          : "") +
+        (dayLessons.length
+          ? '<section class="lesson-group"><h3>Учебные пары</h3>' +
+            dayLessons
+              .map(
+                (item) =>
+                  '<div class="lesson-entry"><strong>' +
+                  escape(item.subject) +
+                  "</strong><br>" +
+                  escape(item.startTime) +
+                  "–" +
+                  escape(item.endTime) +
+                  " · Аудитория " +
+                  escape(item.room) +
+                  "<br>" +
+                  '<button data-lesson="' +
+                  lessons.indexOf(item) +
+                  '">Редактировать пару</button></div>',
+              )
+              .join("") +
+            "</section>"
           : "") +
         '<div class="actions"><button data-action="add">Добавить запись</button><button data-action="pick">Выбрать шаг из планов</button></div></aside></div>';
       document.querySelector("#area").value = area;
@@ -857,11 +1004,66 @@
           "</button></form>",
       );
     }
+    function showLessonForm(lesson) {
+      const record = lesson ?? {
+        weekday: weekday(selected),
+        subject: "",
+        room: "",
+        startTime: "",
+        endTime: "",
+        termStart: selected,
+        termEnd: selected,
+      };
+      openDialog(
+        lesson ? "Редактировать пару" : "Добавить пару",
+        '<form id="lesson-form" data-index="' +
+          lessons.indexOf(lesson) +
+          '">' +
+          '<label>Предмет<input name="subject" required value="' +
+          escape(record.subject) +
+          '"></label>' +
+          '<label>Аудитория<input name="room" required value="' +
+          escape(record.room) +
+          '"></label>' +
+          '<label>День недели<select name="weekday">' +
+          lessonWeekdays
+            .map(
+              (day, index) =>
+                '<option value="' +
+                (index + 1) +
+                '" ' +
+                (record.weekday === index + 1 ? "selected" : "") +
+                ">" +
+                day +
+                "</option>",
+            )
+            .join("") +
+          "</select></label>" +
+          '<div class="dates"><label>Начало пары<input name="startTime" type="time" required value="' +
+          record.startTime +
+          '"></label>' +
+          '<label>Конец пары<input name="endTime" type="time" required value="' +
+          record.endTime +
+          '"></label></div>' +
+          '<div class="dates"><label>Начало семестра<input name="termStart" type="date" required value="' +
+          record.termStart +
+          '"></label>' +
+          '<label>Конец семестра<input name="termEnd" type="date" required value="' +
+          record.termEnd +
+          '"></label></div>' +
+          '<button class="primary">Сохранить</button></form>',
+      );
+    }
+
     document.addEventListener("click", (event) => {
       const button = event.target.closest("button");
       if (!button) return;
       if (button.dataset.date) {
         selectDay(button.dataset.date);
+        return;
+      }
+      if (button.dataset.lesson !== undefined) {
+        showLessonForm(lessons[Number(button.dataset.lesson)]);
         return;
       }
       if (button.dataset.entry !== undefined) {
@@ -928,6 +1130,9 @@
           done = true;
           render();
           break;
+        case "add-lesson":
+          showLessonForm();
+          break;
         case "add":
         case "filled":
         case "pending":
@@ -945,6 +1150,11 @@
       }
     });
     document.addEventListener("change", (event) => {
+      if (event.target.id === "show-lessons") {
+        showLessons = event.target.checked;
+        render();
+        document.querySelector("#show-lessons").focus();
+      }
       if (event.target.id === "done") {
         done = event.target.checked;
         render();
@@ -959,6 +1169,42 @@
       }
     });
     document.addEventListener("submit", (event) => {
+      if (event.target.id === "lesson-form") {
+        event.preventDefault();
+        const form = event.target;
+        const fields = Object.fromEntries(new FormData(form));
+        fields.weekday = Number(fields.weekday);
+        const first = dateFrom(fields.termStart);
+        first.setUTCDate(
+          first.getUTCDate() +
+            ((fields.weekday - weekday(fields.termStart) + 7) % 7),
+        );
+        const invalid =
+          fields.endTime <= fields.startTime
+            ? form.elements.endTime
+            : iso(first) > fields.termEnd
+              ? form.elements.termEnd
+              : null;
+        if (invalid) {
+          invalid.setCustomValidity(
+            invalid.name === "endTime"
+              ? "Конец пары должен быть позже начала"
+              : "Нет занятий в указанном периоде",
+          );
+          invalid.reportValidity();
+          invalid.oninput = () => invalid.setCustomValidity("");
+          return;
+        }
+        const index = Number(form.dataset.index);
+        if (index >= 0) Object.assign(lessons[index], fields);
+        else lessons.push(fields);
+        dialog.close();
+        if (!lessonsOn(selected).includes(index >= 0 ? lessons[index] : fields))
+          selectDay(iso(first));
+        notice = "Пара сохранена";
+        render();
+        return;
+      }
       if (event.target.id !== "entry-form") return;
       event.preventDefault();
       const form = event.target,

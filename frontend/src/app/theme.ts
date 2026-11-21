@@ -31,6 +31,8 @@ export const calendarVariables: CSSVariablesResolver = () => ({
     '--step': '#285641',
     '--step-bg': '#E3EDE4',
     '--step-mark': '#578463',
+    '--lesson': '#53451E',
+    '--lesson-bg': '#F0E9D0',
   },
   light: {
     '--mantine-color-body': '#F8F6EF',

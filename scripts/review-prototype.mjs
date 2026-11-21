@@ -23,6 +23,19 @@ try {
       fullPage: true,
     });
     await capture();
+    const toggle = page.getByRole('checkbox', { name: 'Учебные пары' });
+    await expect(toggle).not.toBeChecked();
+    await toggle.check();
+    await page.getByRole('button', { name: '3 пары · 27 ноября', exact: true }).click();
+    await expect(agenda.getByText('09:00–10:30 · Аудитория 2403')).toBeVisible();
+    await expect(agenda.getByText('Поездка в Карелию')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    await capture('schedule-');
+    await page.getByRole('button', { name: 'Добавить пару' }).click();
+    await expect(page.getByRole('dialog').getByRole('textbox', { name: 'Предмет' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await toggle.uncheck();
+    await page.getByRole('button', { name: '28 ноября', exact: true }).click();
     const navigation = page.getByRole('navigation', { name: 'Разделы' });
     await navigation.getByRole('button', { name: 'Планы' }).click();
     await expect(page.getByRole('heading', { name: 'Собрать список книг' })).toBeVisible();

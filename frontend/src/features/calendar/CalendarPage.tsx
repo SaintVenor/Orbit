@@ -1,18 +1,21 @@
-import { ActionIcon, Alert, Button, NativeSelect } from '@mantine/core';
-import { addMonths, format } from 'date-fns';
+import { ActionIcon, Alert, Button, NativeSelect, Switch } from '@mantine/core';
+import { addMonths, format, getISODay } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, type Area, type CalendarItem, type EntryFields, type Kind } from '../../app/api';
 import { Header } from '../../app/Header';
 import { useDialog } from '../../app/useDialog';
+import { useLoad } from '../../app/useLoad';
 import { useMutation } from '../../app/useMutation';
 import { planApi } from '../plans/planApi';
 import { Agenda } from './Agenda';
 import { EntryDialog } from './EntryDialog';
 import { MonthGrid } from './MonthGrid';
+import { LessonDialog } from './LessonDialog';
+import { lessonApi, lessonsOn, type Lesson } from './lessons';
 import { StepPicker } from './StepPicker';
-import { asDate, birthdayInViewYear, dateKey, isDateKey, kindLabels, monthDays, monthKey, monthSummary } from './dates';
+import { asDate, birthdayInViewYear, dateKey, isDateKey, kindLabels, monthDays, monthKey, monthSummary, moveDay } from './dates';
 import styles from './calendar.module.css';
 
 interface LoadedCalendar {
@@ -66,6 +69,14 @@ export function CalendarPage() {
   const [notice, setNotice] = useState('');
   const dialogTrigger = useRef<HTMLElement | null>(null);
   const picker = useDialog<true>();
+  const [showLessons, setShowLessons] = useState(false);
+  const lessonDialog = useDialog<Lesson | 'new'>();
+  const { from, to } = range;
+  const loadLessons = useCallback((signal: AbortSignal) => lessonApi.list(from, to, signal), [from, to]);
+  const { data: lessonData, loading: lessonsLoading, failed: lessonsFailed, refresh: refreshLessons } = useLoad(loadLessons, showLessons);
+  const lessons = lessonData?.items ?? [];
+  const dayLessons = lessonsOn(lessons, selected);
+  const lessonCounts = new Map(range.days.map(day => [day, lessonsOn(lessons, day).length]));
   const stepAction = useMutation();
   const filtered = Boolean(area || kind);
   const visible = items.filter(item => (!area || item.area === area) && (!kind || item.kind === kind));
@@ -138,6 +149,18 @@ export function CalendarPage() {
     });
   }
 
+  function savedLesson(lesson: Lesson) {
+    lessonDialog.close();
+    if (!lessonsOn([lesson], selected).length) {
+      const start = lesson.termStart > range.first ? lesson.termStart : range.first;
+      const next = moveDay(start, (lesson.weekday - getISODay(asDate(start)) + 7) % 7);
+      const first = moveDay(lesson.termStart, (lesson.weekday - getISODay(asDate(lesson.termStart)) + 7) % 7);
+      select(next <= lesson.termEnd ? next : first);
+    }
+    setNotice('Пара сохранена.');
+    refreshLessons();
+  }
+
   const add = () => open();
   const calendarHref = '/calendar' + (query.size ? '?' + query.toString() : '');
 
@@ -164,7 +187,14 @@ export function CalendarPage() {
           data={[{ value: '', label: 'Все типы' }, ...Object.entries(kindLabels).map(([value, label]) => ({ value, label }))]}
           onChange={event => setKind(event.currentTarget.value as Kind | '')} />
         {filtered && <Button variant="subtle" onClick={clearFilters}>Сбросить фильтры</Button>}
+        <div className={styles.scheduleControls}>
+          <Switch label="Учебные пары" checked={showLessons} onChange={event => setShowLessons(event.currentTarget.checked)} />
+          {showLessons && <Button variant="default" size="compact-md" onClick={() => lessonDialog.open('new')}>Добавить пару</Button>}
+        </div>
       </div>
+      {lessonsFailed && <Alert color="red" role="alert" className={styles.alert}>
+        Не удалось загрузить учебное расписание. <Button variant="subtle" size="compact-sm" onClick={refreshLessons}>Повторить</Button>
+      </Alert>}
       {notice && <Alert role="status" className={styles.alert}>{notice}</Alert>}
       {stepAction.error && <Alert color="red" role="alert" className={styles.alert}>{stepAction.error.message}</Alert>}
       {failed && <Alert color="red" role="alert" className={styles.alert}>
@@ -172,12 +202,20 @@ export function CalendarPage() {
       </Alert>}
       <div className={styles.layout}>
         <MonthGrid days={range.days} month={monthId} today={today} selected={selected}
-          items={visible} onSelect={select} onAgenda={openAgenda} onOpen={open} />
+          items={visible} lessonCounts={lessonCounts} onSelect={select} onAgenda={openAgenda} onOpen={open} />
         <Agenda day={selected} items={visible} loading={loading && !items.length} failed={failed} filtered={filtered}
           calendarHref={calendarHref} onAdd={add} onOpen={open} onPick={() => picker.open(true)}
-          onComplete={complete} stepPending={stepAction.busy} />
+          onComplete={complete} stepPending={stepAction.busy}
+          lessons={dayLessons} lessonsLoading={lessonsLoading} onLessonOpen={lesson => lessonDialog.open(lesson)} />
       </div>
     </main>
+    {lessonDialog.value && <LessonDialog day={selected} lesson={lessonDialog.value === 'new' ? undefined : lessonDialog.value}
+      onClose={lessonDialog.close} onSaved={savedLesson} onRemoved={() => {
+        lessonDialog.close();
+        setNotice('Пара удалена.');
+        refreshLessons();
+        requestAnimationFrame(() => document.getElementById('agenda-date')?.focus());
+      }} />}
     {picker.value && <StepPicker day={selected} calendarHref={calendarHref} onClose={picker.close} onAssigned={assigned} />}
     {dialog && <EntryDialog day={selected} item={dialog.item} onClose={closeDialog}
       onSaved={saved} onDeleted={() => {

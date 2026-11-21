@@ -20,6 +20,7 @@
 .controls, .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filters { margin-bottom: 12px; }
 .filters select { background-color: var(--surface); }
+.scheduleControls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-inline-start: auto; }
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(250px, 3fr);
@@ -37,7 +38,7 @@
 .weekdays { background: #f1f1e8; color: var(--muted); font-size: 13px; }
 .weekdays span { padding: 8px 11px; }
 .week {
-  grid-template-rows: 34px repeat(3, 17px) 15px 1px;
+  grid-template-rows: 34px repeat(3, 17px) 15px var(--lesson-row, 1px);
   isolation: isolate;
 }
 .day {
@@ -93,6 +94,26 @@
   text-align: left;
   cursor: pointer;
 }
+.week[data-lesson-overflow] { --lesson-row: 23px; }
+.week[data-lesson-overflow] .lessonCount { grid-row: 6; }
+.lessonCount {
+  grid-row: 5;
+  z-index: 2;
+  align-self: center;
+  justify-self: start;
+  margin: 0 3px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 5px;
+  max-width: calc(100% - 6px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--lesson-bg);
+  color: var(--lesson);
+  font: 650 11px var(--mantine-font-family);
+  cursor: pointer;
+}
 .agenda { padding: 20px; min-width: 0; }
 .agenda h2 { font-size: 28px; line-height: 1.14; margin: 0; }
 .agenda h2:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
@@ -108,6 +129,10 @@
 .entryKind { color: var(--kind-text); font-size: 13px; }
 .agendaEntry h3 { margin: 2px 0; font: 650 15px var(--mantine-font-family); }
 .schedule { font-size: 14px; }
+.lessons { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 8px; }
+.lessons > h3 { margin: 0 0 8px; font-size: 20px; }
+.lessonEntry { background: var(--lesson-bg); color: var(--lesson); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.lessonEntry h4 { margin: 0 0 2px; font-size: 15px; }
 .agendaActions { display: grid; gap: 8px; margin-top: 12px; }
 .stepActions { display: grid; justify-items: start; gap: 8px; margin-top: 8px; font-size: 14px; }
 .alert { margin: 0 0 12px; }
@@ -121,7 +146,7 @@
   .summary { font-size: 13px; }
   .layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .weekdays span { text-align: center; padding: 4px 2px; }
-  .week { grid-template-rows: 29px repeat(3, 5px) 8px 1px; }
+  .week { grid-template-rows: 29px repeat(3, 5px) 8px var(--lesson-row, 1px); }
   .day { justify-items: center; padding: 1px 0 0; }
   .day span { width: 25px; height: 25px; }
   .segment { margin: 0 7px 1px; border: 0; padding: 0; background: var(--kind-mark); }
@@ -130,7 +155,9 @@
   .segment[data-continuation-end] { border-radius: 5px 0 0 5px; }
   .segment[data-continuation-start][data-continuation-end] { border-radius: 0; }
   .segmentLabel { display: none; }
-  .week:has(.more) { grid-template-rows: 29px repeat(3, 5px) 18px 1px; }
+  .week:has(.more), .week:has(.lessonCount) { grid-template-rows: 29px repeat(3, 5px) 18px var(--lesson-row, 1px); }
+  .scheduleControls { margin-inline-start: 0; }
+  .lessonCount { justify-self: center; margin-inline: 1px; padding-inline: 2px; font-size: 10px; }
   .more { text-align: center; padding: 0; font-size: 10px; }
   .agenda { padding: 14px; }
 }

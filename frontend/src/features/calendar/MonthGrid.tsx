@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { CalendarItem } from '../../app/api';
 import { asDate, fullDate, itemKey, kindLabels, kindMarks, moveDay } from './dates';
 import { layoutWeek } from './layout';
+import { lessonCount } from './lessons';
 import styles from './calendar.module.css';
 
 const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -13,12 +14,13 @@ interface Props {
   today: string;
   selected: string;
   items: CalendarItem[];
+  lessonCounts: Map<string, number>;
   onSelect: (day: string) => void;
   onOpen: (item: CalendarItem) => void;
   onAgenda: (day: string) => void;
 }
 
-export function MonthGrid({ days, month, today, selected, items, onSelect, onOpen, onAgenda }: Props) {
+export function MonthGrid({ days, month, today, selected, items, lessonCounts, onSelect, onOpen, onAgenda }: Props) {
   const [cursor, setCursor] = useState(selected);
   const dateButtons = useRef(new Map<string, HTMLButtonElement>());
   const pendingFocus = useRef<string | null>(null);
@@ -53,7 +55,8 @@ export function MonthGrid({ days, month, today, selected, items, onSelect, onOpe
     <div className={styles.weekdays} aria-hidden="true">{weekdays.map(day => <span key={day}>{day}</span>)}</div>
     {weeks.map(week => {
       const { segments, hidden } = layoutWeek(week, items);
-      return <div className={styles.week} key={week[0]}>
+      const lessonOverflow = week.some((day, index) => hidden[index] > 0 && (lessonCounts.get(day) ?? 0) > 0);
+      return <div className={styles.week} data-lesson-overflow={lessonOverflow || undefined} key={week[0]}>
         {week.map((day, index) => <button
           key={day}
           ref={button => { if (button) dateButtons.current.set(day, button); else dateButtons.current.delete(day); }}
@@ -93,6 +96,14 @@ export function MonthGrid({ days, month, today, selected, items, onSelect, onOpe
           aria-label={'Ещё ' + count + ' · ' + fullDate(week[index])}
           onClick={() => onAgenda(week[index])}
         >ещё {count}</button>)}
+        {week.map((day, index) => {
+          const count = lessonCounts.get(day) ?? 0;
+          if (!count) return null;
+          const label = lessonCount(count);
+          return <button key={'lessons-' + day} className={styles.lessonCount} type="button" tabIndex={-1}
+            style={{ gridColumn: index + 1 }} aria-label={label + ' · ' + fullDate(day)}
+            onClick={() => onAgenda(day)}>{label}</button>;
+        })}
       </div>;
     })}
   </section>;
