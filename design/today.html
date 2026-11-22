@@ -31,9 +31,8 @@ const days = [
 ];
 const events = [
   {day:0,start:590,end:680,title:'Технологии ИИ в разработке ПО',type:'Пара',place:'2334'},
-  {day:0,start:650,end:695,title:'Консультация',type:'Встреча',place:'Онлайн'},
-  {day:0,start:810,end:900,title:'Волейбол',type:'Пара',place:'4405'},
-  {day:0,start:1020,end:1080,title:'Подготовить отчёт',type:'Дело',place:'Дома'},
+  {day:0,start:650,end:695,title:'Консультация',type:'Событие'},
+  {day:0,start:785,end:840,title:'Монтаж ролика',type:'Событие'},
   {day:2,start:660,end:720,title:'Забрать книги',type:'Дело',place:'Библиотека'},
   {day:2,start:840,end:930,title:'Репетиция',type:'Встреча',place:'Студия'}
 ];
@@ -106,7 +105,7 @@ function timeline(items,next,now,isToday){
       const block=document.createElement('button');block.className='block'+(e.type==='Пара'?' lesson':'')+(e===next?' next':'');
       Object.assign(block.style,{top:(e.start-group.start)*scale+'px',height:(e.end-e.start)*scale+'px',left:(100*lanes[i]/ends.length)+'%',width:'calc('+100/ends.length+'% - 3px)'});
       block.innerHTML='<small>'+e.type+(e===next?' · Далее':'')+'</small><b>'+e.title+'</b><small>'+span(e)+'</small>';
-      block.onclick=()=>modal(e.title,'<p>'+e.type+' · '+span(e)+'</p><p>'+room(e)+' · '+e.place+'</p>');
+      block.onclick=()=>modal(e.title,'<p>'+e.type+' · '+span(e)+'</p>'+(e.place?'<p>'+room(e)+' · '+e.place+'</p>':''));
       tracks.append(block);
     });
     if(isToday && now>=group.start && now<group.end){
@@ -129,7 +128,7 @@ function render(){
   let label='Расписание',title='Свободный день',info='';
   if(focus){
     label=current?'● Сейчас идёт':isToday?'→ Далее · через '+(next.start-now)+' мин':'→ Первое дело';
-    title=focus.title;info='<div class="info"><div><small>'+focus.type+'</small><b>'+span(focus)+'</b></div><div><small>'+room(focus)+'</small><b>'+focus.place+'</b></div></div>';
+    title=focus.title;info='<div class="info"><div><small>'+focus.type+'</small><b>'+span(focus)+'</b></div>'+(focus.place?'<div><small>'+room(focus)+'</small><b>'+focus.place+'</b></div>':'')+'</div>';
   }else if(assigned===selected && !done){title=stepName;label='Шаг плана · без времени';}
   else if(items.length || assigned===selected){title=isToday?'Всё на сегодня закончилось':'Все дела завершены';}
   byId('hero').innerHTML='<div class="eyebrow">'+label+'</div><h2>'+title+'</h2>'+info;
