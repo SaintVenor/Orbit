@@ -1,0 +1,28 @@
+
+> orbit-calendar@0.1.0 setup
+> node scripts/orbit.mjs setup
+
+
+added 57 packages, and audited 58 packages in 12s
+
+10 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+Requirement already satisfied: fastapi==0.128.0 in .\.venv\Lib\site-packages (from -r server/requirements.txt (line 1)) (0.128.0)
+Requirement already satisfied: uvicorn==0.40.0 in .\.venv\Lib\site-packages (from -r server/requirements.txt (line 2)) (0.40.0)
+Requirement already satisfied: starlette<0.51.0,>=0.40.0 in .\.venv\Lib\site-packages (from fastapi==0.128.0->-r server/requirements.txt (line 1)) (0.50.0)
+Requirement already satisfied: pydantic>=2.7.0 in .\.venv\Lib\site-packages (from fastapi==0.128.0->-r server/requirements.txt (line 1)) (2.14.4)
+Requirement already satisfied: typing-extensions>=4.8.0 in .\.venv\Lib\site-packages (from fastapi==0.128.0->-r server/requirements.txt (line 1)) (4.16.0)
+Requirement already satisfied: annotated-doc>=0.0.2 in .\.venv\Lib\site-packages (from fastapi==0.128.0->-r server/requirements.txt (line 1)) (0.0.7)
+Requirement already satisfied: click>=7.0 in .\.venv\Lib\site-packages (from uvicorn==0.40.0->-r server/requirements.txt (line 2)) (8.5.1)
+Requirement already satisfied: h11>=0.8 in .\.venv\Lib\site-packages (from uvicorn==0.40.0->-r server/requirements.txt (line 2)) (0.16.0)
+Requirement already satisfied: anyio<5,>=3.6.2 in .\.venv\Lib\site-packages (from starlette<0.51.0,>=0.40.0->fastapi==0.128.0->-r server/requirements.txt (line 1)) (4.16.0)
+Requirement already satisfied: idna>=2.8 in .\.venv\Lib\site-packages (from anyio<5,>=3.6.2->starlette<0.51.0,>=0.40.0->fastapi==0.128.0->-r server/requirements.txt (line 1)) (3.20)
+Requirement already satisfied: annotated-types>=0.6.0 in .\.venv\Lib\site-packages (from pydantic>=2.7.0->fastapi==0.128.0->-r server/requirements.txt (line 1)) (0.8.0)
+Requirement already satisfied: pydantic-core==2.50.5 in .\.venv\Lib\site-packages (from pydantic>=2.7.0->fastapi==0.128.0->-r server/requirements.txt (line 1)) (2.50.5)
+Requirement already satisfied: typing-inspection>=0.4.4 in .\.venv\Lib\site-packages (from pydantic>=2.7.0->fastapi==0.128.0->-r server/requirements.txt (line 1)) (0.4.5)
+
+[notice] A new release of pip is available: 26.0.1 -> 26.3
+[notice] To update, run: C:\MyProjects\AiProjects\Homework-08\Orbit\.venv\Scripts\python.exe -m pip install --upgrade pip
+Exit code: 0

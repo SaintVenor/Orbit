@@ -1,0 +1,9 @@
+> npm run build
+
+> tsc --noEmit && vite build
+vite v7.3.8 building client environment for production...
+✓ 1617 modules transformed.
+(!) Some chunks are larger than 500 kB after minification. Consider:
+dist/assets/index-CWhgtl0w.css                             234.76 kB │ gzip:  36.96 kB
+dist/assets/index-B2fagVxw.js                              507.55 kB │ gzip: 156.80 kB
+✓ built in 12.45s

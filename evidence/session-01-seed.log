@@ -1,0 +1,12 @@
+
+> orbit-calendar@0.1.0 seed
+> node scripts/orbit.mjs seed
+
+Demo seed: 2026-11-20, trip 2026-11-27 .. 2026-12-02
+Exit code: 0
+
+> orbit-calendar@0.1.0 seed
+> node scripts/orbit.mjs seed --date 2026-11-20
+
+Demo seed: 2026-11-20, trip 2026-11-27 .. 2026-12-02
+Exit code: 0
