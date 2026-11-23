@@ -176,7 +176,7 @@ test('разовая пара сохраняет дату и тип, перек�
   await dialog.getByLabel('Дата пары').fill('2027-01-15');
   await dialog.getByLabel('Начало пары').fill('09:00');
   await dialog.getByLabel('Конец пары').fill('10:30');
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({ path: 'evidence/flight-one-off-lesson.png' });
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({ path: '.cache/day-preview/one-off-lesson.png' });
   await dialog.getByRole('button', { name: 'Сохранить' }).click();
   const lessonCard = page.getByRole('button', { name: /Лабораторная.*Разовая физика/ });
   await expect(lessonCard).toBeVisible();

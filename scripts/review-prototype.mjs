@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-const output = new URL('../evidence/', import.meta.url);
+const output = new URL('../evidence/comparison/', import.meta.url);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch();
 try {
@@ -18,17 +18,15 @@ try {
     await expect(page.getByRole('heading', { name: 'Ноябрь 2026' })).toBeVisible();
     await expect(agenda.getByText('Поездка в Карелию')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    const capture = async (screen = '') => page.screenshot({
-      path: fileURLToPath(new URL('prototype-' + screen + name + '.png', output)),
-      fullPage: true,
+    const capture = (screen, fullPage = false) => page.screenshot({
+      path: fileURLToPath(new URL(screen + '-prototype-' + name + '.png', output)),
+      fullPage,
     });
-    await capture();
     const view = page.locator('.views');
     await view.getByRole('button', { name: 'Неделя', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Неделя' })).toBeVisible();
     await page.getByRole('button', { name: 'Тёмная тема' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await capture('week-dark-');
     await page.getByRole('button', { name: 'Светлая тема' }).click();
     await view.getByRole('button', { name: 'Месяц', exact: true }).click();
     const toggle = page.getByRole('checkbox', { name: 'Учебные пары' });
@@ -38,7 +36,6 @@ try {
     await expect(agenda.getByText('09:00–10:30 · Аудитория 2403')).toBeVisible();
     await expect(agenda.getByText('Поездка в Карелию')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    await capture('schedule-');
     await page.getByRole('button', { name: 'Добавить пару' }).click();
     await expect(page.getByRole('dialog').getByRole('textbox', { name: 'Предмет' })).toBeVisible();
     await page.keyboard.press('Escape');
@@ -49,7 +46,6 @@ try {
     await expect(page.getByRole('heading', { name: 'Собрать список книг' })).toBeVisible();
     await expect(page.getByText('1 из 3')).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
-    await capture('gallery-');
     await navigation.getByRole('button', { name: 'Календарь' }).click();
     await page.getByRole('button', { name: 'Следующий месяц' }).click();
     await expect(agenda.getByText('27 ноя — 2 дек · день 5 из 6')).toBeVisible();
@@ -63,7 +59,12 @@ try {
     await agenda.getByRole('button', { name: 'Отметить выполненным' }).click();
     await agenda.getByRole('button', { name: 'Снять первый короткий ролик' }).click();
     await expect(page.getByText('2 из 3')).toBeVisible();
-    await capture('plan-');
+    await capture('plan', true);
+    await page.goto(new URL('../design/today.html?date=2026-11-20', import.meta.url).href);
+    await page.getByRole('checkbox', { name: 'Учебные пары' }).check();
+    await expect(page.locator('#hero')).toContainText('2334');
+    await expect(page.locator('#notice')).toContainText('10:50–11:20');
+    await capture('day');
     await page.close();
     console.log(name, viewport.width + '×' + viewport.height, 'OK');
   }

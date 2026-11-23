@@ -1,0 +1,11 @@
+Контрольный прогон с временно скрытым сообщением об ошибке. Фрагмент вывода Playwright.
+
+> node scripts/orbit.mjs test-client -g задержка, пустые данные
+Running 1 test using 1 worker
+  1) frontend\tests\calendar-ui.spec.ts:67:1 › задержка, пустые данные, ошибки загрузки и сохранения, затем успех
+    Error: expect(locator).toContainText(expected) failed
+    Locator: getByRole('dialog').getByRole('alert')
+    Expected substring: "Сервер не смог выполнить запрос."
+    Error: element(s) not found
+  1 failed
+Exit code: 1

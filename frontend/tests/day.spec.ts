@@ -50,7 +50,7 @@ test('утреннее расписание, пересечение и назн�
     expect(b.y).toBeLessThan(a.y+a.height);
     expect(b.y+b.height).toBeGreaterThan(a.y+a.height);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    if (process.env.ORBIT_CAPTURE_DAY && width!==360) await page.screenshot({path:'evidence/app-today-'+width+'x'+height+'.png'});
+    if (process.env.ORBIT_CAPTURE_DAY && width!==360) await page.screenshot({path:'evidence/comparison/day-app-' + (width === 390 ? 'mobile' : 'desktop') + '.png'});
   }
   await page.getByRole('button',{name:'Тёмная тема'}).click();
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme','dark');
@@ -61,20 +61,20 @@ test('утреннее расписание, пересечение и назн�
   const desktopCard = (await card.boundingBox())!;
   expect(desktopCard.x + desktopCard.width).toBeLessThan((await timeline.boundingBox())!.x);
   expect(desktopCard.y + desktopCard.height).toBeLessThanOrEqual((await tasks.boundingBox())!.y);
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/app-next-dark-desktop.png'});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/comparison/day-dark.png'});
   await page.setViewportSize({width:390,height:844});
   const mobileCard = (await card.boundingBox())!;
   expect(mobileCard.y + mobileCard.height).toBeLessThan((await timeline.boundingBox())!.y);
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/app-next-dark-mobile.png'});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/app-next-dark-mobile.png'});
   await page.setViewportSize({width:1440,height:900});
   await page.getByText('Неделя',{exact:true}).click();
   const week=page.getByRole('region',{name:'Неделя'});
   await expect(week.getByRole('button',{name:/Консультация.*Пересечение/})).toBeVisible();
   if (process.env.ORBIT_CAPTURE_DAY) {
-    await page.screenshot({path:'evidence/flight-week-desktop.png'});
+    await page.screenshot({path:'.cache/day-preview/flight-week-desktop.png'});
     await page.setViewportSize({width:390,height:844});
     await expect(week.getByRole('button',{name:/Консультация.*Пересечение/})).toBeVisible();
-    await page.screenshot({path:'evidence/flight-week-mobile.png'});
+    await page.screenshot({path:'.cache/day-preview/flight-week-mobile.png'});
     await page.setViewportSize({width:1440,height:900});
   }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(1440);
@@ -85,13 +85,13 @@ test('утреннее расписание, пересечение и назн�
   await toggle.check();
   await expect(card).toContainText('до конца 45 мин');
   await expect(card.getByRole('img',{name:'Прошло 50% события'})).toBeVisible();
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/flight-in-progress.png'});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/flight-in-progress.png'});
   await page.clock.setFixedTime(new Date('2026-11-20T21:30:00'));
   await page.reload();
   await expect(page.getByRole('heading',{name:'Всё на сегодня закончилось'})).toBeVisible();
   await page.getByRole('button',{name:'Следующий день'}).click();
   await expect(page.getByRole('heading',{name:'Свободный день'})).toBeVisible();
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/flight-free-day.png'});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/flight-free-day.png'});
   await add('entries',{id:'flight-long',title:'long',kind:'event',startDate:'2026-11-21',endDate:'2026-11-25'});
   await page.reload();
   await expect(card.getByRole('heading',{name:'long'})).toBeVisible();
@@ -104,7 +104,7 @@ test('утреннее расписание, пересечение и назн�
   await page.getByRole('button',{name:'Выбрать шаг из планов'}).click();
   const draft = page.getByRole('button',{name:'Собрать черновой монтаж'});
   await expect(draft).toBeVisible();
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/flight-step-picker.png'});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/flight-step-picker.png'});
   await draft.click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('status')).toHaveText('Шаг «Собрать черновой монтаж» назначен на 21 ноября.');
@@ -117,7 +117,7 @@ test('утреннее расписание, пересечение и назн�
   await expect(page.getByText('Шаг выполнен.')).toBeVisible();
   await page.getByRole('link',{name:'Короткий ролик'}).click();
   await expect(page.getByRole('checkbox',{name:'Собрать черновой монтаж'})).toBeChecked();
-  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/flight-plan-completed.png', fullPage:true});
+  if (process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/flight-plan-completed.png', fullPage:true});
 
   // Past day with a deadline and several untimed steps, as in the review screenshot.
   const past = '2026-11-19';
@@ -135,7 +135,7 @@ test('утреннее расписание, пересечение и назн�
   for (const [width,height] of [[1440,900],[390,844]]) {
     await page.setViewportSize({width,height});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);
-    if(process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'evidence/day-tasks-dark-'+width+'.png'});
+    if(process.env.ORBIT_CAPTURE_DAY) await page.screenshot({path:'.cache/day-preview/day-tasks-dark-'+width+'.png'});
   }
 });
 
@@ -169,8 +169,8 @@ test('четыре пересекающихся события дают одну
   await expect(page.getByText('11:00', { exact: true })).toBeVisible();
   await expect(page.getByText('12:00', { exact: true })).toBeVisible();
   if (process.env.ORBIT_CAPTURE_DAY) {
-    await page.screenshot({ path: 'evidence/day-overlaps-light.png' });
+    await page.screenshot({ path: '.cache/day-preview/day-overlaps-light.png' });
     await page.getByRole('button', { name: 'Тёмная тема' }).click();
-    await page.screenshot({ path: 'evidence/day-overlaps-dark.png' });
+    await page.screenshot({ path: '.cache/day-preview/day-overlaps-dark.png' });
   }
 });

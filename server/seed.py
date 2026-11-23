@@ -63,10 +63,18 @@ def seed(anchor, flight_plan=False):
             [
                 ("demo-film", "Снять первый короткий ролик", "personal",
                  "Собрать ролик из коротких кадров и попробовать монтаж.", "film"),
-                ("demo-route", "Пройти маршрут вдоль залива", "personal", "", "route"),
                 ("demo-books", "Собрать список книг", "personal", "", "grid"),
             ],
         )
+        route = db.execute(
+            """INSERT OR IGNORE INTO plans (id, title, area, note, motif)
+               VALUES ('demo-route', 'Пройти маршрут вдоль залива', 'personal', '', 'route')"""
+        )
+        if flight_plan and route.rowcount:
+            db.execute(
+                """INSERT INTO steps (id, plan_id, position, title, done)
+                   VALUES ('demo-route-walk', 'demo-route', 1, 'Пройти от набережной до маяка', 1)"""
+            )
         db.executemany(
             """INSERT OR IGNORE INTO steps (id, plan_id, position, title, done)
                VALUES (?, 'demo-film', ?, ?, ?)""",

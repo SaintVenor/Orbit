@@ -88,7 +88,7 @@ test('задержка, пустые данные, ошибки загрузки
 
   await page.goto(date);
   const shot = async (name: string) => {
-    if (process.env.ORBIT_CAPTURE === '1') await page.screenshot({ path: 'evidence/' + name + '.png', fullPage: true });
+    if (process.env.ORBIT_CAPTURE === '1') await page.screenshot({ path: '.cache/calendar-states/' + name + '.png', fullPage: true });
   };
   await expect(page.getByRole('status', { name: 'Загрузка записей' })).toBeVisible();
   await shot('calendar-test-delay');

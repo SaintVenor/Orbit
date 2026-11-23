@@ -38,13 +38,14 @@ test('из плана в повестку и обратно: назначени�
   const agenda = page.getByRole('complementary', { name: 'Повестка' });
   const pick = agenda.getByRole('button', { name: 'Выбрать шаг из планов' });
   await expect(agenda.getByText('На этот день ничего не запланировано.')).toBeVisible();
+  await screenshot(page, 'scenario/free-day');
   await pick.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Выбрать шаг из планов' });
   await expect(dialog.getByRole('button', { name: draft, exact: true })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Посмотреть урок', exact: true })).toHaveCount(0);
   await expect(dialog.getByText('суббота, 21 ноября 2026')).toBeVisible();
-  await screenshot(page, 'session-02-step-picker');
+  await screenshot(page, 'scenario/choose-step');
   await dialog.getByRole('button', { name: draft, exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
@@ -53,20 +54,21 @@ test('из плана в повестку и обратно: назначени�
 
   await page.reload();
   await expect(agenda.getByRole('heading', { name: draft })).toBeVisible();
+  await screenshot(page, 'scenario/assigned-after-reload');
   await agenda.getByRole('button', { name: 'Отметить выполненным' }).click();
   await expect(agenda.getByText('Шаг плана · Выполнен')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Месяц' }).getByRole('button', { name: draft + ' · Шаг плана' })).toBeVisible();
-  await screenshot(page, 'session-02-step-completed');
+  await screenshot(page, 'scenario/completed-step');
   await agenda.getByRole('link', { name: title }).click();
   await expect(page.getByText('2 из 3', { exact: true })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: draft })).toBeChecked();
   await expect(page.getByRole('link', { name: 'суббота, 21 ноября 2026' })).toBeVisible();
-  await screenshot(page, 'session-02-plan-desktop');
+  await screenshot(page, 'comparison/plan-app-desktop');
 
   await page.setViewportSize({ width: 360, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
   await page.setViewportSize({ width: 390, height: 844 });
-  await screenshot(page, 'session-02-plan-mobile');
+  await screenshot(page, 'comparison/plan-app-mobile');
   await page.setViewportSize({ width: 360, height: 844 });
   const editStep = page.getByRole('button', { name: 'Редактировать шаг «' + draft + '»' });
   await editStep.click();
